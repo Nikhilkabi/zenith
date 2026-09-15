@@ -1,0 +1,53 @@
+import { invoke } from "@tauri-apps/api/core";
+import type { Country, ImageRecord, Place } from "./types";
+
+export function listCountries(): Promise<Country[]> {
+  return invoke("list_countries");
+}
+
+export function createCountry(name: string, iso?: string): Promise<Country> {
+  return invoke("create_country", { name, iso: iso || null });
+}
+
+export function getLibraryPath(): Promise<string> {
+  return invoke("get_library_path");
+}
+
+export function revealLibrary(): Promise<void> {
+  return invoke("reveal_library");
+}
+
+export function listPlaces(countryId: string): Promise<Place[]> {
+  return invoke("list_places", { countryId });
+}
+
+export function getPlace(placeId: string): Promise<Place> {
+  return invoke("get_place", { placeId });
+}
+
+export function createPlace(
+  countryId: string,
+  name: string,
+  status?: "dream" | "been",
+): Promise<Place> {
+  return invoke("create_place", { countryId, name, status: status ?? null });
+}
+
+export function listImages(placeId: string): Promise<ImageRecord[]> {
+  return invoke("list_images", { placeId });
+}
+
+export function importImageBytes(
+  placeId: string,
+  filename: string,
+  bytes: number[],
+): Promise<ImageRecord> {
+  return invoke("import_image_bytes", { placeId, filename, bytes });
+}
+
+export function importImagePath(
+  placeId: string,
+  sourcePath: string,
+): Promise<ImageRecord> {
+  return invoke("import_image_path", { placeId, sourcePath });
+}

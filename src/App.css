@@ -1,0 +1,277 @@
+:root {
+  color: #1a1a1a;
+  background: #f7f4ef;
+  font-family: "Segoe UI", system-ui, sans-serif;
+  line-height: 1.5;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+.app-shell {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid #ddd5c7;
+  background: #fffdf9;
+}
+
+.brand {
+  font-size: 1.35rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+}
+
+.topbar-actions {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.content {
+  flex: 1;
+  padding: 1.5rem;
+  max-width: 1100px;
+  width: 100%;
+  margin: 0 auto;
+}
+
+button {
+  border: 1px solid #c8bfb0;
+  background: #fff;
+  color: inherit;
+  padding: 0.55rem 0.9rem;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+button.primary {
+  background: #1a1a1a;
+  color: #fff;
+  border-color: #1a1a1a;
+}
+
+button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+input,
+select,
+textarea {
+  width: 100%;
+  border: 1px solid #c8bfb0;
+  border-radius: 8px;
+  padding: 0.55rem 0.75rem;
+  background: #fff;
+}
+
+.form-row {
+  display: grid;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.form-inline {
+  display: flex;
+  gap: 0.75rem;
+  align-items: end;
+}
+
+.form-inline .form-row {
+  flex: 1;
+  margin-bottom: 0;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 4rem 1rem;
+  border: 1px dashed #c8bfb0;
+  border-radius: 16px;
+  background: #fffdf9;
+}
+
+.empty-state h2 {
+  margin: 0 0 0.5rem;
+}
+
+.empty-state p {
+  margin: 0 0 1.25rem;
+  color: #5c5348;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 1rem;
+}
+
+.card {
+  border: 1px solid #ddd5c7;
+  border-radius: 14px;
+  overflow: hidden;
+  background: #fff;
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+}
+
+.card-cover {
+  aspect-ratio: 4 / 3;
+  background: linear-gradient(135deg, #e8dfd1, #f5efe6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.card-cover img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.card-cover.typographic {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #5c5348;
+}
+
+.card-body {
+  padding: 0.85rem 1rem 1rem;
+}
+
+.card-body h3 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.card-body p {
+  margin: 0.35rem 0 0;
+  color: #5c5348;
+  font-size: 0.9rem;
+}
+
+.section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+}
+
+.section-header h1,
+.section-header h2 {
+  margin: 0;
+}
+
+.hero {
+  border-radius: 18px;
+  overflow: hidden;
+  margin-bottom: 1.5rem;
+  min-height: 220px;
+  background: linear-gradient(135deg, #d9cdb8, #f0e8dc);
+  display: flex;
+  align-items: end;
+}
+
+.hero img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  min-height: 220px;
+}
+
+.hero-text {
+  padding: 1.5rem;
+  background: rgba(255, 253, 249, 0.92);
+  width: 100%;
+}
+
+.hero-text h1 {
+  margin: 0;
+}
+
+.hero-text p {
+  margin: 0.35rem 0 0;
+  color: #5c5348;
+}
+
+.dropzone {
+  border: 2px dashed #b8aa96;
+  border-radius: 16px;
+  padding: 2rem;
+  text-align: center;
+  background: #fffdf9;
+  margin-bottom: 1.5rem;
+}
+
+.dropzone.active {
+  border-color: #1a1a1a;
+  background: #f0ebe3;
+}
+
+.image-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 0.75rem;
+}
+
+.image-grid img {
+  width: 100%;
+  aspect-ratio: 1;
+  object-fit: cover;
+  border-radius: 10px;
+  border: 1px solid #ddd5c7;
+  background: #eee;
+}
+
+.error-banner {
+  background: #fdecea;
+  color: #8a1f11;
+  border: 1px solid #f5c2bb;
+  border-radius: 10px;
+  padding: 0.75rem 1rem;
+  margin-bottom: 1rem;
+}
+
+.status-pill {
+  display: inline-block;
+  padding: 0.15rem 0.55rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  background: #ece4d8;
+}
+
+.status-pill.been {
+  background: #dce9dd;
+}
+
+.library-path {
+  font-size: 0.85rem;
+  color: #5c5348;
+  word-break: break-all;
+}
