@@ -94,6 +94,6 @@
     }
   ],
   "uncommitted_files": [],
-  "next_action": "Fix PathBuf import and places.status CHECK ('been'), run npm run tauri:dev, smoke-test create country → place → import photo. Then continue inbox/search/export per revised plan.",
-  "context_notes": "WIP commit 55ee1b5 on master. Much further than early scans suggested — React UI and wired Rust exist. Pause was mid-verification. Do not re-brainstorm. Do not add areas/activities/maps/sync."
+  "next_action": "Fix places.status CHECK ('been' not 'props'), run npm run tauri:dev, smoke-test create country → place → import photo. Then continue inbox/search/export per revised plan.",
+  "context_notes": "WIP commits a9d25be + baf0145 on master. PathBuf/GenericImageView fixes landed in baf0145. React UI and wired Rust exist. Pause mid-verification. Do not re-brainstorm. Do not add areas/activities/maps/sync."
 }
