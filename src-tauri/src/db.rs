@@ -14,10 +14,12 @@ pub enum DbError {
     Sqlite(#[from] rusqlite::Error),
     #[error(transparent)]
     Io(#[from] std::io::Error),
+    #[error(transparent)]
+    Image(#[from] image::ImageError),
 }
 
 impl DbError {
-    fn msg(s: impl Into<String>) -> Self {
+    pub(crate) fn msg(s: impl Into<String>) -> Self {
         Self::Message(s.into())
     }
 }

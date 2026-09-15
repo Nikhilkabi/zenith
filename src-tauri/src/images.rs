@@ -1,9 +1,9 @@
 use crate::db::{self, AppState, DbError};
 use crate::models::ImageRecord;
 use image::imageops::FilterType;
-use image::{DynamicImage, ImageFormat};
+use image::{DynamicImage, GenericImageView, ImageFormat};
 use std::fs;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use uuid::Uuid;
 
 const DISPLAY_LONG_EDGE: u32 = 2000;
