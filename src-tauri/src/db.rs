@@ -33,7 +33,10 @@ const MIGRATIONS: &[(i32, &str)] = &[(1, include_str!("migrations/001_initial.sq
 
 pub fn init_library() -> Result<AppState, DbError> {
     let docs = dirs::document_dir().ok_or_else(|| DbError::msg("Could not find Documents folder"))?;
-    let library_root = docs.join("Bucket");
+    init_library_at(docs.join("Bucket"))
+}
+
+pub fn init_library_at(library_root: PathBuf) -> Result<AppState, DbError> {
     fs::create_dir_all(library_root.join("library"))?;
 
     let db_path = library_root.join("db.sqlite");
@@ -219,6 +222,55 @@ pub fn create_place(
     })
 }
 
+pub fn update_place(
+    conn: &Connection,
+    place_id: &str,
+    name: Option<&str>,
+    notes: Option<&str>,
+    status: Option<&str>,
+) -> Result<Place, DbError> {
+    let mut place = get_place(conn, place_id)?;
+
+    if let Some(name) = name {
+        let trimmed = name.trim();
+        if trimmed.is_empty() {
+            return Err(DbError::msg("Place name is required"));
+        }
+        place.name = trimmed.to_string();
+    }
+
+    if let Some(notes) = notes {
+        let trimmed = notes.trim();
+        place.notes = if trimmed.is_empty() {
+            None
+        } else {
+            Some(trimmed.to_string())
+        };
+    }
+
+    if let Some(status) = status {
+        place.status = match status {
+            "been" => "been".to_string(),
+            _ => "dream".to_string(),
+        };
+    }
+
+    conn.execute(
+        "UPDATE places SET name = ?1, notes = ?2, status = ?3 WHERE id = ?4",
+        params![place.name, place.notes, place.status, place_id],
+    )?;
+
+    get_place(conn, place_id)
+}
+
+pub fn delete_place(conn: &Connection, place_id: &str) -> Result<(), DbError> {
+    let changed = conn.execute("DELETE FROM places WHERE id = ?1", params![place_id])?;
+    if changed == 0 {
+        return Err(DbError::msg("Place not found"));
+    }
+    Ok(())
+}
+
 pub fn list_images(conn: &Connection, place_id: &str) -> Result<Vec<ImageRecord>, DbError> {
     let mut stmt = conn.prepare(
         "SELECT id, place_id, original_relpath, display_relpath, thumb_relpath, sort
@@ -281,10 +333,6 @@ pub fn insert_image(
         thumb_relpath: thumb_relpath.to_string(),
         sort,
     })
-}
-
-pub fn abs_from_relpath(library_root: &Path, relpath: &str) -> PathBuf {
-    library_root.join(relpath.replace('/', std::path::MAIN_SEPARATOR_STR))
 }
 
 pub fn relpath_from_abs(library_root: &Path, abs: &Path) -> Result<String, DbError> {

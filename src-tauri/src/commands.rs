@@ -74,6 +74,31 @@ pub fn create_place(
 }
 
 #[tauri::command]
+pub fn update_place(
+    state: State<'_, SharedState>,
+    place_id: String,
+    name: Option<String>,
+    notes: Option<String>,
+    status: Option<String>,
+) -> Result<Place, String> {
+    let state = state.lock().map_err(|_| "App state lock poisoned".to_string())?;
+    db::update_place(
+        &state.conn,
+        &place_id,
+        name.as_deref(),
+        notes.as_deref(),
+        status.as_deref(),
+    )
+    .map_err(map_err)
+}
+
+#[tauri::command]
+pub fn delete_place(state: State<'_, SharedState>, place_id: String) -> Result<(), String> {
+    let state = state.lock().map_err(|_| "App state lock poisoned".to_string())?;
+    db::delete_place(&state.conn, &place_id).map_err(map_err)
+}
+
+#[tauri::command]
 pub fn list_images(state: State<'_, SharedState>, place_id: String) -> Result<Vec<ImageRecord>, String> {
     let state = state.lock().map_err(|_| "App state lock poisoned".to_string())?;
     db::list_images(&state.conn, &place_id).map_err(map_err)

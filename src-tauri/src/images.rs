@@ -14,9 +14,9 @@ fn is_heic(filename: &str, bytes: &[u8]) -> bool {
     if lower.ends_with(".heic") || lower.ends_with(".heif") {
         return true;
     }
-    (bytes.len() >= 12
+    bytes.len() >= 12
         && &bytes[4..8] == b"ftyp"
-        && (bytes[8..12] == *b"heic" || bytes[8..12] == *b"heix" || bytes[8..12] == *b"mif1"))
+        && (bytes[8..12] == *b"heic" || bytes[8..12] == *b"heix" || bytes[8..12] == *b"mif1")
 }
 
 fn detect_format(filename: &str, bytes: &[u8]) -> Result<ImageFormat, DbError> {

@@ -275,3 +275,9 @@ textarea {
   color: #5c5348;
   word-break: break-all;
 }
+
+button.danger {
+  background: #8a1f11;
+  color: #fff;
+  border-color: #8a1f11;
+}

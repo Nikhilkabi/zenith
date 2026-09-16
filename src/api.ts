@@ -33,6 +33,22 @@ export function createPlace(
   return invoke("create_place", { countryId, name, status: status ?? null });
 }
 
+export function updatePlace(
+  placeId: string,
+  patch: { name?: string; notes?: string; status?: "dream" | "been" },
+): Promise<Place> {
+  return invoke("update_place", {
+    placeId,
+    name: patch.name ?? null,
+    notes: patch.notes ?? null,
+    status: patch.status ?? null,
+  });
+}
+
+export function deletePlace(placeId: string): Promise<void> {
+  return invoke("delete_place", { placeId });
+}
+
 export function listImages(placeId: string): Promise<ImageRecord[]> {
   return invoke("list_images", { placeId });
 }

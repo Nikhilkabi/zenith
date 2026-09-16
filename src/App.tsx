@@ -84,6 +84,7 @@ export default function App() {
             placeId={view.placeId}
             libraryRoot={libraryRoot}
             onBack={() => setView({ kind: "country", countryId: view.countryId })}
+            onDeleted={() => setView({ kind: "country", countryId: view.countryId })}
           />
         )}
       </main>
