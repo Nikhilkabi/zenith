@@ -1,29 +1,25 @@
 # STATE
 
 ## Project Reference
-Bucket — personal visual travel scrapbook (Tauri 2 + React). Plan: `visual_bucket_atlas`.
+Bucket — personal visual travel scrapbook (Tauri 2 + React).
 
 ## Current Position
-Plan-driven greenfield. Task 2 of 6 verified; place notes/delete added. Next: inbox + search/export/editorial UI.
+v1 todos complete. Ready for user review.
 
-Progress: ██████░░░░ ~45%
+Progress: ██████████ 100% of listed v1 todos
 
 ## Recent Decisions
 - v1 = desktop scrapbook; trips/budget = v2
 - Flat Country → Place; no area chapters; no activities table
 - Data in `Documents\Bucket`
-- Schema CHECK `'dream'|'been'` was already correct (pause `'props'` note was a misread)
 
 ## Pending Todos
-- Inbox + YouTube oEmbed + triage (place optional)
-- Search + editorial visual pass + zip export
-- Links CRUD on place page
-- Country delete / edit
+None for v1 list. User review next.
 
 ## Blockers/Concerns
-None for running the app. `npm run tauri:dev` / `Start Bucket.bat` launches a native window.
+None.
 
 ## Session Continuity
-Last session: 2026-09-16 — resumed from `/gsd-pause-work`
-Stopped at: Photo pipeline smoke-tested; place notes / been-there / delete added; `tauri:dev` running
+Last session: 2026-09-16 — finished inbox, search, export, links, country edit/delete, editorial UI
+Stopped at: Awaiting user review of the running app
 Resume file: `.planning/.continue-here.md`

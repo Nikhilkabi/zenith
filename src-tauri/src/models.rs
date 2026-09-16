@@ -8,6 +8,7 @@ pub struct Country {
     pub cover_relpath: Option<String>,
     pub sort: i32,
     pub created_at: String,
+    pub place_count: i32,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -30,4 +31,36 @@ pub struct ImageRecord {
     pub display_relpath: String,
     pub thumb_relpath: String,
     pub sort: i32,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct LinkRecord {
+    pub id: String,
+    pub place_id: Option<String>,
+    pub country_id: Option<String>,
+    pub url: String,
+    pub title: Option<String>,
+    pub thumb_relpath: Option<String>,
+    pub source: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct InboxItem {
+    pub id: String,
+    pub url: String,
+    pub title: Option<String>,
+    pub thumb_relpath: Option<String>,
+    pub image_relpath: Option<String>,
+    pub source: String,
+    pub created_at: String,
+    pub filed_at: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SearchHit {
+    pub kind: String,
+    pub id: String,
+    pub title: String,
+    pub subtitle: Option<String>,
+    pub country_id: Option<String>,
 }

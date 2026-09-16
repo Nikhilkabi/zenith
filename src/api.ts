@@ -1,5 +1,12 @@
 import { invoke } from "@tauri-apps/api/core";
-import type { Country, ImageRecord, Place } from "./types";
+import type {
+  Country,
+  ImageRecord,
+  InboxItem,
+  LinkRecord,
+  Place,
+  SearchHit,
+} from "./types";
 
 export function listCountries(): Promise<Country[]> {
   return invoke("list_countries");
@@ -7,6 +14,21 @@ export function listCountries(): Promise<Country[]> {
 
 export function createCountry(name: string, iso?: string): Promise<Country> {
   return invoke("create_country", { name, iso: iso || null });
+}
+
+export function updateCountry(
+  countryId: string,
+  patch: { name?: string; iso?: string },
+): Promise<Country> {
+  return invoke("update_country", {
+    countryId,
+    name: patch.name ?? null,
+    iso: patch.iso ?? null,
+  });
+}
+
+export function deleteCountry(countryId: string): Promise<void> {
+  return invoke("delete_country", { countryId });
 }
 
 export function getLibraryPath(): Promise<string> {
@@ -66,4 +88,77 @@ export function importImagePath(
   sourcePath: string,
 ): Promise<ImageRecord> {
   return invoke("import_image_path", { placeId, sourcePath });
+}
+
+export function listLinks(args: {
+  placeId?: string;
+  countryId?: string;
+}): Promise<LinkRecord[]> {
+  return invoke("list_links", {
+    placeId: args.placeId ?? null,
+    countryId: args.countryId ?? null,
+  });
+}
+
+export function addLink(args: {
+  url: string;
+  title?: string;
+  placeId?: string;
+  countryId?: string;
+}): Promise<LinkRecord> {
+  return invoke("add_link", {
+    url: args.url,
+    title: args.title ?? null,
+    placeId: args.placeId ?? null,
+    countryId: args.countryId ?? null,
+  });
+}
+
+export function deleteLink(linkId: string): Promise<void> {
+  return invoke("delete_link", { linkId });
+}
+
+export function listInbox(): Promise<InboxItem[]> {
+  return invoke("list_inbox");
+}
+
+export function inboxCount(): Promise<number> {
+  return invoke("inbox_count");
+}
+
+export function captureInboxUrl(url: string): Promise<InboxItem> {
+  return invoke("capture_inbox_url", { url });
+}
+
+export function captureInboxImage(
+  filename: string,
+  bytes: number[],
+): Promise<InboxItem> {
+  return invoke("capture_inbox_image", { filename, bytes });
+}
+
+export function fileInbox(args: {
+  inboxId: string;
+  countryId: string;
+  placeId?: string;
+  newPlaceName?: string;
+}): Promise<InboxItem> {
+  return invoke("file_inbox", {
+    inboxId: args.inboxId,
+    countryId: args.countryId,
+    placeId: args.placeId ?? null,
+    newPlaceName: args.newPlaceName ?? null,
+  });
+}
+
+export function deleteInbox(inboxId: string): Promise<void> {
+  return invoke("delete_inbox", { inboxId });
+}
+
+export function search(query: string): Promise<SearchHit[]> {
+  return invoke("search", { query });
+}
+
+export function exportLibraryZip(destPath: string): Promise<void> {
+  return invoke("export_library_zip", { destPath });
 }

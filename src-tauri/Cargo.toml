@@ -27,3 +27,5 @@ image = "0.25"
 dirs = "6"
 chrono = { version = "0.4", features = ["serde"] }
 thiserror = "2"
+ureq = { version = "2.12", features = ["json"] }
+zip = { version = "2.2", default-features = false, features = ["deflate"] }

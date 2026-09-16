@@ -1,5 +1,7 @@
+mod capture;
 mod commands;
 mod db;
+mod export;
 mod images;
 mod models;
 
@@ -28,6 +30,8 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             commands::list_countries,
             commands::create_country,
+            commands::update_country,
+            commands::delete_country,
             commands::get_library_path,
             commands::reveal_library,
             commands::list_places,
@@ -38,6 +42,17 @@ pub fn run() {
             commands::list_images,
             commands::import_image_bytes,
             commands::import_image_path,
+            commands::list_links,
+            commands::add_link,
+            commands::delete_link,
+            commands::list_inbox,
+            commands::inbox_count,
+            commands::capture_inbox_url,
+            commands::capture_inbox_image,
+            commands::file_inbox,
+            commands::delete_inbox,
+            commands::search,
+            commands::export_library_zip,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
@@ -99,6 +114,35 @@ mod tests {
             .unwrap_err();
         assert!(err.to_string().contains("HEIC"), "{err}");
 
+        let _ = std::fs::remove_dir_all(dir);
+    }
+
+    #[test]
+    fn inbox_and_search() {
+        let dir = std::env::temp_dir().join(format!("bucket-test-{}", Uuid::new_v4()));
+        let state = init_library_at(dir.clone()).unwrap();
+        let country = db::create_country(&state.conn, "Japan", Some("JP")).unwrap();
+        db::create_place(&state.conn, &country.id, "Kyoto", None).unwrap();
+        db::insert_inbox(
+            &state.conn,
+            "https://example.com/reel",
+            Some("Cool reel"),
+            None,
+            None,
+            "web",
+        )
+        .unwrap();
+
+        let hits = db::search(&state.conn, "kyo").unwrap();
+        assert!(hits.iter().any(|h| h.title == "Kyoto"));
+        let inbox_hits = db::search(&state.conn, "reel").unwrap();
+        assert!(inbox_hits.iter().any(|h| h.kind == "inbox"));
+        assert_eq!(db::inbox_count(&state.conn).unwrap(), 1);
+
+        let zip_path = std::env::temp_dir().join(format!("bucket-export-{}.zip", Uuid::new_v4()));
+        crate::export::zip_library(&state.library_root, &zip_path).unwrap();
+        assert!(zip_path.exists());
+        let _ = std::fs::remove_file(zip_path);
         let _ = std::fs::remove_dir_all(dir);
     }
 }

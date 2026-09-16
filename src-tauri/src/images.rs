@@ -145,3 +145,21 @@ pub fn import_image_path(
     let bytes = fs::read(&path)?;
     import_image_bytes(state, place_id, &filename, bytes)
 }
+
+pub fn save_inbox_bytes(
+    state: &AppState,
+    filename: &str,
+    bytes: Vec<u8>,
+) -> Result<String, DbError> {
+    detect_format(filename, &bytes)?;
+    let ext = Path::new(filename)
+        .extension()
+        .and_then(|e| e.to_str())
+        .unwrap_or("jpg");
+    let dir = state.library_root.join("library/inbox");
+    fs::create_dir_all(&dir)?;
+    let name = format!("{}_original.{ext}", Uuid::new_v4());
+    let abs = dir.join(&name);
+    fs::write(&abs, bytes)?;
+    db::relpath_from_abs(&state.library_root, &abs)
+}

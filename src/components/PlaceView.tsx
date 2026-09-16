@@ -10,6 +10,7 @@ import {
 } from "../api";
 import { assetUrl } from "../lib/assets";
 import type { ImageRecord, Place } from "../types";
+import LinkPanel from "./LinkPanel";
 
 interface Props {
   placeId: string;
@@ -236,6 +237,8 @@ export default function PlaceView({ placeId, libraryRoot, onBack, onDeleted }: P
           ))}
         </div>
       )}
+
+      <LinkPanel libraryRoot={libraryRoot} placeId={placeId} countryId={place.country_id} />
     </>
   );
 }

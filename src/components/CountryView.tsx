@@ -1,13 +1,16 @@
 import { useEffect, useState, type FormEvent } from "react";
-import { createPlace, listPlaces } from "../api";
+import { createPlace, deleteCountry, listPlaces, updateCountry } from "../api";
 import { assetUrl } from "../lib/assets";
 import type { Country, Place } from "../types";
+import LinkPanel from "./LinkPanel";
 
 interface Props {
   country: Country;
   libraryRoot: string;
   onOpenPlace: (placeId: string) => void;
   onBack: () => void;
+  onCountryUpdated: (country: Country) => void;
+  onCountryDeleted: () => void;
 }
 
 export default function CountryView({
@@ -15,6 +18,8 @@ export default function CountryView({
   libraryRoot,
   onOpenPlace,
   onBack,
+  onCountryUpdated,
+  onCountryDeleted,
 }: Props) {
   const [places, setPlaces] = useState<Place[]>([]);
   const [name, setName] = useState("");
@@ -53,7 +58,36 @@ export default function CountryView({
           <button type="button" onClick={onBack}>
             ← All countries
           </button>
-          <h1 style={{ marginTop: "0.75rem" }}>{country.name}</h1>
+          <h1 className="display" style={{ marginTop: "0.75rem" }}>
+            {country.name}
+          </h1>
+        </div>
+        <div className="topbar-actions">
+          <button
+            type="button"
+            onClick={() => {
+              const name = window.prompt("Country name", country.name);
+              if (!name) return;
+              const iso = window.prompt("ISO code (optional)", country.iso ?? "") ?? "";
+              updateCountry(country.id, { name, iso })
+                .then(onCountryUpdated)
+                .catch((err) => setError(String(err)));
+            }}
+          >
+            Rename
+          </button>
+          <button
+            type="button"
+            className="danger"
+            onClick={() => {
+              if (!window.confirm(`Delete ${country.name} and every place inside it?`)) return;
+              deleteCountry(country.id)
+                .then(onCountryDeleted)
+                .catch((err) => setError(String(err)));
+            }}
+          >
+            Delete country
+          </button>
         </div>
       </div>
 
@@ -131,6 +165,8 @@ export default function CountryView({
           ))}
         </div>
       )}
+
+      <LinkPanel libraryRoot={libraryRoot} countryId={country.id} />
     </>
   );
 }

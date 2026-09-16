@@ -17,20 +17,22 @@ export default function HomeView({
 }: Props) {
   return (
     <>
-      <div className="section-header">
-        <h1>Countries</h1>
+      <div className="masthead">
+        <p className="eyebrow">Personal atlas</p>
+        <h1 className="display">Countries</h1>
+        <p className="lede">Posters for the places you keep saving and never file.</p>
       </div>
 
       {countries.length === 0 ? (
         <div className="empty-state">
-          <h2>Start your travel scrapbook</h2>
-          <p>Add your first country to begin collecting places and photos.</p>
+          <h2>The wall is blank</h2>
+          <p>Add a country, then dump Reels and stills into the inbox.</p>
           <AddCountryForm onCreated={onCountryCreated} />
         </div>
       ) : (
         <>
           <AddCountryForm onCreated={onCountryCreated} />
-          <div className="grid" style={{ marginTop: "1.5rem" }}>
+          <div className="poster-grid">
             {countries.map((country) => (
               <CountryCard
                 key={country.id}
