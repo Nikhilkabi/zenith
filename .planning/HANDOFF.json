@@ -1,0 +1,91 @@
+{
+  "version": "1.0",
+  "timestamp": "2026-10-07T07:35:35.757Z",
+  "phase": null,
+  "phase_name": null,
+  "phase_dir": null,
+  "plan": null,
+  "task": null,
+  "total_tasks": null,
+  "status": "paused",
+  "completed_tasks": [
+    {
+      "id": 1,
+      "name": "Strip unused logo experiments and fold cover apply into one picker",
+      "status": "done",
+      "commit": null
+    },
+    {
+      "id": 2,
+      "name": "Paginate Openverse cover search and load the next page on scroll",
+      "status": "done",
+      "commit": null
+    },
+    {
+      "id": 3,
+      "name": "Store a cover focal point and let the user drag the photo before saving",
+      "status": "done",
+      "commit": null
+    },
+    {
+      "id": 4,
+      "name": "Install that build to Zenith.exe",
+      "status": "done",
+      "commit": null
+    }
+  ],
+  "remaining_tasks": [
+    {
+      "id": 5,
+      "name": "User checks cover scroll and drag in the reopened Zenith window",
+      "status": "not_started"
+    }
+  ],
+  "blockers": [],
+  "human_actions_pending": [
+    {
+      "action": "Quit Zenith and open it again, then scroll a cover search and drag a chosen photo",
+      "context": "npm run install:local finished this session and copied the release build to %LOCALAPPDATA%\\Programs\\Bucket\\Zenith.exe. A browser tab at localhost:5173 cannot call Tauri invoke, so the live scroll and drag were not exercised there.",
+      "blocking": false
+    }
+  ],
+  "decisions": [
+    {
+      "decision": "Cover search uses Openverse, 20 results per page, and appends the next page when the grid sentinel scrolls into view.",
+      "rationale": "Unsplash needs a client id this app cannot embed. The first request used to stop at 12 with no next page. Page 1 clears library/cover-search; later pages append. A process lock stops a new search from wiping thumbs a previous page is still writing.",
+      "phase": null
+    },
+    {
+      "decision": "cover_x and cover_y (0-100, default 50) are the image point that should sit in the middle of whatever frame shows the cover.",
+      "rationale": "object-position percentages do not mean the same crop on a 2:1 band and a square tile. Storing the image point keeps that point centered in both. Existing covers stay center-cropped.",
+      "phase": null
+    },
+    {
+      "decision": "Goals frame a wide cover. Countries and places frame a square. Move writes focus only; it does not download the photo again.",
+      "rationale": "The goal page has a 2:1 band. Country and place covers are the square tiles. A country tile can show a place photo when the country has no cover of its own; own_cover stops Move from saving a focus the tile will ignore.",
+      "phase": null
+    },
+    {
+      "decision": "Goals are their own table, not a kind of country. The library folder stays Documents\\Bucket. The header is the word Zenith. The icon is the existing white-ink mountain.",
+      "rationale": "The user asked for an all-purpose bucket list without losing destinations or the photos already on disk, and rejected logo restyles.",
+      "phase": null
+    }
+  ],
+  "uncommitted_files": [
+    "Working tree is dirty against ec51b3a. Product code since that commit is uncommitted on purpose.",
+    ".gitignore",
+    "README.md",
+    "Start Bucket.bat",
+    "index.html",
+    "package.json",
+    "package-lock.json",
+    "public/icons.svg (deleted)",
+    "src-tauri/ (commands, db, models, capture, images, export, lib, covers.rs, migrations 002-004, icons, Cargo.toml, tauri.conf.json, capabilities)",
+    "src/ (App, api, types, views, ui, lib including coverFocus, assets/fonts)",
+    "scripts/install-local.mjs",
+    "design/zenith-logo.png",
+    ".github/"
+  ],
+  "next_action": "Do not start a feature. Ask whether cover scroll and drag behave after Zenith was reopened. Fix only what they report. Do not commit the product tree unless they ask.",
+  "context_notes": "No .planning/phases directory. The 2026-09-16 continue-here file was stale: inbox, search, and export are already in ec51b3a, and the dirty tree adds the Zenith name, goals, stock covers, and cover focus. Installed binary is Zenith.exe; cargo package name is still bucket. Dev preview without Tauri throws TypeError reading invoke; ignore it."
+}

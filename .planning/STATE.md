@@ -1,25 +1,27 @@
 # STATE
 
 ## Project Reference
-Bucket — personal visual travel scrapbook (Tauri 2 + React).
+Zenith — personal local-first bucket list (Tauri 2 + React + SQLite). Cargo package name is still `bucket`.
 
 ## Current Position
-v1 todos complete. Ready for user review.
+Paused 2026-10-07 after cover search paging and cover positioning. No active phase directory.
 
-Progress: ██████████ 100% of listed v1 todos
+Progress: cover scroll and drag are installed in Zenith.exe and waiting on the user to try them.
 
 ## Recent Decisions
-- v1 = desktop scrapbook; trips/budget = v2
-- Flat Country → Place; no area chapters; no activities table
-- Data in `Documents\Bucket`
+- Library stays `%USERPROFILE%\Documents\Bucket`
+- Goals are a sibling of countries, not a kind of country
+- Cover photos come from Openverse and are copied into the library
+- `cover_x` / `cover_y` are the image point that stays in the middle of the frame
+- Header is the word Zenith. The icon is the existing white-ink mountain.
 
 ## Pending Todos
-None for v1 list. User review next.
+- User quits and reopens Zenith, then tries scrolling cover results and dragging a photo.
 
 ## Blockers/Concerns
-None.
+None in code. The Tauri window was not clicked for this pass.
 
 ## Session Continuity
-Last session: 2026-09-16 — finished inbox, search, export, links, country edit/delete, editorial UI
-Stopped at: Awaiting user review of the running app
+Last session: 2026-10-07 — cover paging, cover focus, local install
+Stopped at: Waiting for the user to try the installed build
 Resume file: `.planning/.continue-here.md`
