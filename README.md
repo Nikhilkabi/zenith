@@ -1,6 +1,6 @@
-# Bucket
+# Zenith
 
-Personal travel scrapbook desktop app — countries, places, photos, and an inbox for dumped links.
+A local-first bucket list and trip planner for Windows.
 
 ## Prerequisites
 
@@ -10,11 +10,11 @@ Personal travel scrapbook desktop app — countries, places, photos, and an inbo
 
 ## Run the app
 
-Double-click **Bucket** on your Desktop. That opens the compiled app (no terminal, no wait for Cargo).
+Double-click **Zenith** on your Desktop. That opens the compiled app (no terminal, no wait for Cargo).
 
 The installed copy lives at:
 
-`%LOCALAPPDATA%\Programs\Bucket\Bucket.exe`
+`%LOCALAPPDATA%\Programs\Bucket\Zenith.exe`
 
 After you change the code, rebuild and install:
 
