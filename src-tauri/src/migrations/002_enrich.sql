@@ -1,0 +1,6 @@
+ALTER TABLE images ADD COLUMN sha256 TEXT;
+ALTER TABLE images ADD COLUMN caption TEXT;
+ALTER TABLE images ADD COLUMN taken_at TEXT;
+ALTER TABLE images ADD COLUMN deleted_at TEXT;
+ALTER TABLE countries ADD COLUMN deleted_at TEXT;
+ALTER TABLE places ADD COLUMN deleted_at TEXT;

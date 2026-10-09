@@ -56,3 +56,33 @@ fn add_dir(
     }
     Ok(())
 }
+
+pub fn import_library_zip(library_root: &Path, zip_path: &Path) -> Result<u32, DbError> {
+    let file = File::open(zip_path)?;
+    let mut archive = zip::ZipArchive::new(file).map_err(|e| DbError::msg(e.to_string()))?;
+    let mut copied = 0u32;
+    for i in 0..archive.len() {
+        let mut entry = archive.by_index(i).map_err(|e| DbError::msg(e.to_string()))?;
+        if entry.is_dir() {
+            continue;
+        }
+        let name = entry.name().replace('\\', "/");
+        if name.contains("..") || name.starts_with('/') {
+            continue;
+        }
+        if name == "db.sqlite" || name.ends_with("/db.sqlite") {
+            continue;
+        }
+        let dest = library_root.join(name.replace('/', std::path::MAIN_SEPARATOR_STR));
+        if dest.exists() {
+            continue;
+        }
+        if let Some(parent) = dest.parent() {
+            fs::create_dir_all(parent)?;
+        }
+        let mut out = File::create(&dest)?;
+        std::io::copy(&mut entry, &mut out)?;
+        copied += 1;
+    }
+    Ok(copied)
+}

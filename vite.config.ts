@@ -1,3 +1,4 @@
+/// <reference types="vitest/config" />
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 
@@ -22,6 +23,10 @@ export default defineConfig({
     },
   },
   envPrefix: ["VITE_", "TAURI_ENV_"],
+  test: {
+    environment: "node",
+    include: ["src/**/*.test.ts"],
+  },
   build: {
     target:
       process.env.TAURI_ENV_PLATFORM === "windows" || !process.env.TAURI_ENV_PLATFORM

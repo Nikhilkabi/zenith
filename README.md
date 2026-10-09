@@ -8,16 +8,26 @@ Personal travel scrapbook desktop app — countries, places, photos, and an inbo
 - [Rust](https://www.rust-lang.org/tools/install) stable (rustc + cargo)
 - [WebView2](https://developer.microsoft.com/en-us/microsoft-edge/webview2/) (usually preinstalled on Windows 10/11)
 
-## Run in development
+## Run the app
 
-From the project root:
+Double-click **Bucket** on your Desktop. That opens the compiled app (no terminal, no wait for Cargo).
+
+The installed copy lives at:
+
+`%LOCALAPPDATA%\Programs\Bucket\Bucket.exe`
+
+After you change the code, rebuild and install:
+
+```powershell
+npm run install:local
+```
+
+## Develop (optional)
 
 ```powershell
 npm install
 npm run tauri:dev
 ```
-
-Or double-click **`Start Bucket.bat`**.
 
 ## Build a desktop app
 
@@ -35,17 +45,23 @@ The installer/exe output lands in `src-tauri/target/release/bundle/`.
 └── library\
 ```
 
-Use **Library folder** in the app header to open it in Explorer. **Export zip** writes a backup anywhere except inside that folder.
+Use **Library folder** in the app header to open it in Explorer. **Export zip** writes a backup anywhere except inside that folder. **Import zip** merges files into the same library.
 
 ## Features
 
 - Country posters → places → photo gallery
-- Notes, been-there, delete
-- Inbox: paste YouTube/web URLs (YouTube title/thumb when online) or drop screenshots; file to a country, optionally a place
-- Search across countries, places, notes, and unfiled inbox items
+- Notes, been-there, dream/been filters, drag-reorder
+- Inbox: paste any URL (YouTube or Open Graph title/thumb when online) or drop screenshots; file later
+- Search across countries, places, notes, links, and unfiled inbox items
 - Saved links on countries and places
-- Zip export of the whole library
-- JPEG, PNG, WebP; HEIC rejected with a clear message
+- Photo captions, EXIF date, country photo strip
+- Trash with restore (purge after 30 days)
+- Zip export / import of the library
+- JPEG, PNG, WebP, AVIF (converted); HEIC rejected with a clear message
+
+## Keys
+
+Press `?` in the app for the cheat sheet. `/` focuses search.
 
 ## Project layout
 

@@ -1,5 +1,10 @@
 @echo off
-cd /d "%~dp0"
-start "Bucket Dev" /MIN cmd /c "npm run tauri:dev"
-echo Starting Bucket in development mode...
-echo Close the minimized console window to stop the dev server.
+set "EXE=%LOCALAPPDATA%\Programs\Bucket\Zenith.exe"
+if not exist "%EXE%" set "EXE=%LOCALAPPDATA%\Programs\Bucket\Bucket.exe"
+if exist "%EXE%" (
+  start "" "%EXE%"
+  exit /b 0
+)
+echo Zenith is not installed as an app yet. Building needs a one-time compile.
+echo Run: npm run install:local
+pause

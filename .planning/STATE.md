@@ -22,6 +22,6 @@ Progress: cover scroll and drag are installed in Zenith.exe and waiting on the u
 None in code. The Tauri window was not clicked for this pass.
 
 ## Session Continuity
-Last session: 2026-10-07 — cover paging, cover focus, local install
-Stopped at: Waiting for the user to try the installed build
+Last session: 2026-10-08 — resumed from the 2026-10-07 handoff
+Stopped at: Session resumed, waiting on whether cover scroll and drag work in Zenith
 Resume file: `.planning/.continue-here.md`

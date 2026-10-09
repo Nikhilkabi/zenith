@@ -1,37 +1,56 @@
-import { save } from "@tauri-apps/plugin-dialog";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   exportLibraryZip,
   getLibraryPath,
-  inboxCount,
+  getPlace,
+  importLibraryZip,
   listCountries,
+  listGoals,
+  listTrips,
   revealLibrary,
-  search,
+  sweepOrphans,
 } from "./api";
-import CountryView from "./components/CountryView";
-import HomeView from "./components/HomeView";
-import InboxView from "./components/InboxView";
-import PlaceView from "./components/PlaceView";
-import type { Country, SearchHit, View } from "./types";
+import type { Country, Goal, SearchHit, Trip, View } from "./types";
+import type { StatusFilter } from "./ui/FilterBar";
+import Menu from "./ui/Menu";
+import CheatSheet from "./views/CheatSheet";
+import PhotoSources from "./views/PhotoSources";
+import CountryView from "./views/Country";
+import GoalView from "./views/Goal";
+import Home from "./views/Home";
+import TripView from "./views/Trip";
+import PlaceView from "./views/Place";
+import Search from "./views/Search";
+import Trash from "./views/Trash";
 
 export default function App() {
   const [countries, setCountries] = useState<Country[]>([]);
+  const [goals, setGoals] = useState<Goal[]>([]);
+  const [trips, setTrips] = useState<Trip[]>([]);
   const [libraryRoot, setLibraryRoot] = useState("");
   const [view, setView] = useState<View>({ kind: "home" });
   const [error, setError] = useState<string | null>(null);
-  const [pending, setPending] = useState(0);
   const [query, setQuery] = useState("");
-  const [hits, setHits] = useState<SearchHit[]>([]);
+  const [sheet, setSheet] = useState(false);
+  const [sources, setSources] = useState(false);
+  const [homeFilter, setHomeFilter] = useState<StatusFilter>("all");
+  const searchRef = useRef<HTMLInputElement>(null);
+
+  const onError = useCallback((message: string | null) => {
+    setError(message);
+  }, []);
 
   const reload = useCallback(async () => {
-    const [nextCountries, path, count] = await Promise.all([
+    const [nextCountries, nextGoals, nextTrips, path] = await Promise.all([
       listCountries(),
+      listGoals(),
+      listTrips(),
       getLibraryPath(),
-      inboxCount(),
     ]);
     setCountries(nextCountries);
+    setGoals(nextGoals);
+    setTrips(nextTrips);
     setLibraryRoot(path);
-    setPending(count);
   }, []);
 
   useEffect(() => {
@@ -39,112 +58,246 @@ export default function App() {
   }, [reload]);
 
   useEffect(() => {
-    if (!query.trim()) {
-      setHits([]);
-      return;
-    }
-    const handle = window.setTimeout(() => {
-      search(query)
-        .then(setHits)
-        .catch((err) => setError(String(err)));
-    }, 200);
-    return () => window.clearTimeout(handle);
-  }, [query]);
+    setError(null);
+  }, [view]);
 
-  const activeCountry = useMemo(
-    () =>
-      view.kind === "home" || view.kind === "inbox"
-        ? null
-        : countries.find((country) => country.id === view.countryId) ?? null,
-    [countries, view],
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      const target = e.target as HTMLElement | null;
+      const typing =
+        target &&
+        (target.tagName === "INPUT" ||
+          target.tagName === "TEXTAREA" ||
+          target.isContentEditable);
+
+      if ((e.key === "/" || (e.key === "k" && (e.ctrlKey || e.metaKey))) && !typing) {
+        e.preventDefault();
+        searchRef.current?.focus();
+        searchRef.current?.select();
+      } else if (e.key === "?" && !typing) {
+        e.preventDefault();
+        setSheet((open) => !open);
+      } else if (e.key === "Escape" && sheet) {
+        e.preventDefault();
+        setSheet(false);
+      }
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [sheet]);
+
+  const activeCountry = useMemo(() => {
+    if (view.kind !== "country" && view.kind !== "place") return null;
+    return countries.find((c) => c.id === view.countryId) ?? null;
+  }, [countries, view]);
+
+  const activeGoal = useMemo(
+    () => (view.kind === "goal" ? (goals.find((g) => g.id === view.goalId) ?? null) : null),
+    [goals, view],
   );
 
+  const activeTrip = useMemo(
+    () => (view.kind === "trip" ? (trips.find((trip) => trip.id === view.tripId) ?? null) : null),
+    [trips, view],
+  );
+
+  const [placeLabel, setPlaceLabel] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (view.kind !== "place") {
+      setPlaceLabel(null);
+      return;
+    }
+    getPlace(view.placeId)
+      .then((p) => setPlaceLabel(p.name))
+      .catch(() => setPlaceLabel(null));
+  }, [view]);
+
   async function handleExport() {
-    const dest = await save({
-      defaultPath: "Bucket-backup.zip",
-      filters: [{ name: "Zip", extensions: ["zip"] }],
-    });
-    if (!dest || typeof dest !== "string") return;
     try {
-      await exportLibraryZip(dest);
+      await exportLibraryZip();
     } catch (err) {
       setError(String(err));
     }
   }
 
   function openHit(hit: SearchHit) {
-    setQuery("");
-    setHits([]);
     if (hit.kind === "country" && hit.country_id) {
       setView({ kind: "country", countryId: hit.country_id });
     } else if (hit.kind === "place" && hit.country_id) {
       setView({ kind: "place", placeId: hit.id, countryId: hit.country_id });
-    } else {
-      setView({ kind: "inbox" });
+    } else if (hit.kind === "link" && hit.country_id) {
+      setView({ kind: "country", countryId: hit.country_id });
+    } else if (hit.kind === "goal") {
+      setView({ kind: "goal", goalId: hit.id });
+    } else if (hit.kind === "trip") {
+      setView({ kind: "trip", tripId: hit.id });
     }
   }
 
   return (
-    <div className="app-shell">
-      <aside className="spine" onClick={() => setView({ kind: "home" })}>
-        <span>Bucket</span>
-      </aside>
-      <div className="page">
-        <header className="topbar">
-          <div className="search-wrap">
-            <input
-              className="search"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search countries, places, notes…"
-            />
-            {hits.length > 0 && (
-              <ul className="search-results">
-                {hits.map((hit) => (
-                  <li key={`${hit.kind}-${hit.id}`}>
-                    <button type="button" onClick={() => openHit(hit)}>
-                      <span className="mono">{hit.kind}</span>
-                      {hit.title}
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
-          <div className="topbar-actions">
-            <button type="button" onClick={() => setView({ kind: "inbox" })}>
-              Inbox{pending > 0 ? ` (${pending})` : ""}
-            </button>
-            <button type="button" onClick={() => void revealLibrary()}>
-              Library folder
-            </button>
-            <button type="button" onClick={() => void handleExport()}>
-              Export zip
-            </button>
-          </div>
-        </header>
+    <div className="app">
+      <header className="shell">
+        <button
+          type="button"
+          className="wordmark"
+          aria-label="Zenith"
+          onClick={() => {
+            void reload();
+            setView({ kind: "home" });
+          }}
+        >
+          Zenith
+        </button>
 
-        <main className="content">
-          {error && <div className="error-banner">{error}</div>}
+        <nav className="crumb" aria-label="Breadcrumb">
+          {view.kind !== "home" && view.kind !== "trash" && activeCountry && (
+            <>
+              <span className="sep">/</span>
+              <button
+                type="button"
+                onClick={() =>
+                  setView({ kind: "country", countryId: activeCountry.id })
+                }
+              >
+                {activeCountry.name}
+              </button>
+            </>
+          )}
+          {view.kind === "goal" && (
+            <>
+              <span className="sep">/</span>
+              <span>{activeGoal?.name ?? "…"}</span>
+            </>
+          )}
+          {view.kind === "trip" && (
+            <>
+              <span className="sep">/</span>
+              <span>{activeTrip?.name ?? "…"}</span>
+            </>
+          )}
+          {view.kind === "trash" && (
+            <>
+              <span className="sep">/</span>
+              <span>Trash</span>
+            </>
+          )}
+          {view.kind === "place" && placeLabel && (
+            <>
+              <span className="sep">/</span>
+              <span>{placeLabel}</span>
+            </>
+          )}
+          {view.kind === "place" && !placeLabel && (
+            <>
+              <span className="sep">/</span>
+              <span>…</span>
+            </>
+          )}
+        </nav>
 
+        <div className="shell-tools">
+          <Search
+            query={query}
+            onQuery={setQuery}
+            onOpen={openHit}
+            onError={onError}
+            inputRef={searchRef}
+          />
+          <Menu
+            items={[
+              {
+                label: "Library folder",
+                onClick: () => void revealLibrary().catch((e) => setError(String(e))),
+              },
+              {
+                label: "Export zip",
+                onClick: () => void handleExport(),
+              },
+              {
+                label: "Import zip",
+                onClick: () => {
+                  importLibraryZip()
+                    .then((n) => {
+                      void reload();
+                      if (n > 0) setError(null);
+                    })
+                    .catch((e) => setError(String(e)));
+                },
+              },
+              {
+                label: "Trash",
+                onClick: () => setView({ kind: "trash" }),
+              },
+              {
+                label: "Sweep unused files",
+                onClick: () => {
+                  sweepOrphans()
+                    .then((n) => {
+                      if (n > 0) setError(null);
+                    })
+                    .catch((e) => setError(String(e)));
+                },
+              },
+              {
+                label: "Photo sources",
+                onClick: () => setSources(true),
+              },
+              {
+                label: "Keys",
+                onClick: () => setSheet(true),
+              },
+            ]}
+          />
+        </div>
+      </header>
+
+      {error && (
+        <div className="error-line">
+          <span>{error}</span>
+          <button type="button" className="text" onClick={() => setError(null)}>
+            ×
+          </button>
+        </div>
+      )}
+
+      <main className="content">
+        <div className="view" key={JSON.stringify(view)}>
           {view.kind === "home" && (
-            <HomeView
+            <Home
               countries={countries}
+              goals={goals}
+              trips={trips}
               libraryRoot={libraryRoot}
-              onCountryCreated={(country) =>
-                setCountries((current) => [...current, country])
+              filter={homeFilter}
+              onFilter={setHomeFilter}
+              onCountriesChanged={setCountries}
+              onGoalsChanged={setGoals}
+              onCountryCreated={(country) => {
+                setError(null);
+                setCountries((current) => [...current, country]);
+              }}
+              onGoalCreated={(goal) => {
+                setError(null);
+                setGoals((current) => [...current, goal]);
+              }}
+              onTripCreated={(trip) => {
+                setError(null);
+                setTrips((current) => [...current, trip]);
+              }}
+              onTripsChanged={setTrips}
+              onOpenCountry={(countryId) =>
+                setView({ kind: "country", countryId })
               }
-              onOpenCountry={(countryId) => setView({ kind: "country", countryId })}
+              onOpenGoal={(goalId) => setView({ kind: "goal", goalId })}
+              onOpenTrip={(tripId) => setView({ kind: "trip", tripId })}
+              onError={onError}
+              onLibraryChanged={() => void reload()}
             />
           )}
 
-          {view.kind === "inbox" && (
-            <InboxView
-              countries={countries}
-              libraryRoot={libraryRoot}
-              onFiled={() => void reload()}
-              onBack={() => setView({ kind: "home" })}
-            />
+          {view.kind === "trash" && (
+            <Trash onChanged={() => void reload()} onError={onError} />
           )}
 
           {view.kind === "country" && activeCountry && (
@@ -158,10 +311,11 @@ export default function App() {
                   countryId: activeCountry.id,
                 })
               }
-              onBack={() => setView({ kind: "home" })}
               onCountryUpdated={(country) =>
                 setCountries((current) =>
-                  current.map((item) => (item.id === country.id ? country : item)),
+                  current.map((item) =>
+                    item.id === country.id ? country : item,
+                  ),
                 )
               }
               onCountryDeleted={() => {
@@ -170,24 +324,68 @@ export default function App() {
                 );
                 setView({ kind: "home" });
               }}
+              onCoverChanged={() => void reload()}
+              onError={onError}
             />
           )}
 
-          {view.kind === "country" && !activeCountry && <p>Country not found.</p>}
+          {view.kind === "country" && !activeCountry && (
+            <p className="meta">Country not found.</p>
+          )}
+
+          {view.kind === "trip" && (
+            <TripView
+              tripId={view.tripId}
+              libraryRoot={libraryRoot}
+              countries={countries}
+              onOpenPlace={(placeId, countryId) =>
+                setView({ kind: "place", placeId, countryId })
+              }
+              onDeleted={() => {
+                setTrips((current) => current.filter((item) => item.id !== view.tripId));
+                setView({ kind: "home" });
+              }}
+              onChanged={() => void reload()}
+              onError={onError}
+            />
+          )}
+
+          {view.kind === "goal" && (
+            <GoalView
+              goalId={view.goalId}
+              libraryRoot={libraryRoot}
+              onDeleted={() => {
+                setGoals((current) => current.filter((item) => item.id !== view.goalId));
+                setView({ kind: "home" });
+              }}
+              onChanged={() => void reload()}
+              onError={onError}
+            />
+          )}
 
           {view.kind === "place" && (
             <PlaceView
               placeId={view.placeId}
+              countryId={view.countryId}
               libraryRoot={libraryRoot}
-              onBack={() => setView({ kind: "country", countryId: view.countryId })}
               onDeleted={() => {
                 void reload();
                 setView({ kind: "country", countryId: view.countryId });
               }}
+              onLibraryChanged={() => void reload()}
+              onError={onError}
             />
           )}
-        </main>
-      </div>
+        </div>
+      </main>
+
+      {sheet && <CheatSheet onClose={() => setSheet(false)} />}
+      {sources && (
+        <PhotoSources
+          onClose={() => setSources(false)}
+          onError={onError}
+        />
+      )}
     </div>
   );
 }
