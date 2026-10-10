@@ -18,6 +18,7 @@ import { TRIP_COSTS } from "../types";
 import CoverImage from "../ui/CoverImage";
 import InlineText from "../ui/InlineText";
 import Mark from "../ui/Mark";
+import PlanDate from "../ui/PlanDate";
 import Skeleton from "../ui/Skeleton";
 import TwoClickDelete from "../ui/TwoClickDelete";
 import CoverPicker, { CoverCredit } from "./CoverPicker";
@@ -55,20 +56,17 @@ export default function TripView({
   onError,
 }: Props) {
   const [detail, setDetail] = useState<TripDetail | null>(null);
-  const [whenText, setWhenText] = useState("");
   const [currency, setCurrency] = useState("");
   const [notes, setNotes] = useState("");
   const [amounts, setAmounts] = useState<Record<string, string>>({});
   const [picker, setPicker] = useState(false);
   const [adjusting, setAdjusting] = useState(false);
-  const [ask, setAsk] = useState(false);
   const [adding, setAdding] = useState(false);
   const [catalog, setCatalog] = useState<Place[]>([]);
   const [placeQuery, setPlaceQuery] = useState("");
   const [newName, setNewName] = useState("");
   const [newCountry, setNewCountry] = useState("");
   const hydratedFor = useRef<string | null>(null);
-  const whenTimer = useRef<number | null>(null);
   const currencyTimer = useRef<number | null>(null);
   const notesTimer = useRef<number | null>(null);
   const notesRef = useRef(notes);
@@ -78,7 +76,6 @@ export default function TripView({
     const next = await getTrip(tripId);
     setDetail(next);
     if (hydratedFor.current !== tripId) {
-      setWhenText(next.trip.when_text ?? "");
       setCurrency(next.trip.currency ?? "");
       setNotes(next.trip.notes ?? "");
       const fields: Record<string, string> = {};
@@ -97,7 +94,6 @@ export default function TripView({
 
   useEffect(() => {
     return () => {
-      if (whenTimer.current != null) window.clearTimeout(whenTimer.current);
       if (currencyTimer.current != null) window.clearTimeout(currencyTimer.current);
       if (notesTimer.current != null) window.clearTimeout(notesTimer.current);
     };
@@ -110,16 +106,6 @@ export default function TripView({
       fields[cost.category] = cost.amount == null ? "" : String(cost.amount);
     }
     setAmounts(fields);
-  }
-
-  async function saveWhen(value: string) {
-    try {
-      const trip = await updateTrip(tripId, { whenText: value });
-      setDetail((current) => (current ? { ...current, trip } : current));
-      onChanged();
-    } catch (err) {
-      onError(String(err));
-    }
   }
 
   async function saveCurrency(value: string) {
@@ -141,11 +127,10 @@ export default function TripView({
     }
   }
 
-  async function finish(markPlaces: boolean) {
-    setAsk(false);
+  async function finish() {
     try {
-      const trip = await updateTrip(tripId, { status: "done", markPlaces });
-      setDetail((current) => (current ? { ...current, trip } : current));
+      await updateTrip(tripId, { status: "done", markPlaces: true });
+      await refresh();
       onChanged();
     } catch (err) {
       onError(String(err));
@@ -266,34 +251,22 @@ export default function TripView({
               onToggle={() => {
                 if (done) {
                   updateTrip(tripId, { status: "dream" })
-                    .then((next) => {
-                      setDetail((current) => (current ? { ...current, trip: next } : current));
-                      onChanged();
-                    })
+                    .then(() => refresh())
+                    .then(() => onChanged())
                     .catch((err) => onError(String(err)));
                   return;
                 }
-                if (detail.stops.length === 0) {
-                  void finish(false);
-                  return;
-                }
-                setAsk(true);
+                void finish();
               }}
             />
           </div>
-          <input
-            className="when-line"
-            value={whenText}
-            placeholder="When — June 2027, or dry season"
-            onChange={(event) => {
-              const value = event.target.value;
-              setWhenText(value);
-              if (whenTimer.current != null) window.clearTimeout(whenTimer.current);
-              whenTimer.current = window.setTimeout(() => void saveWhen(value), 500);
-            }}
-            onBlur={() => {
-              if (whenTimer.current != null) window.clearTimeout(whenTimer.current);
-              void saveWhen(whenText);
+          <PlanDate
+            month={trip.month}
+            year={trip.year}
+            onSave={async (month, year) => {
+              await updateTrip(tripId, { month, planYear: year, markPlaces: true });
+              await refresh();
+              onChanged();
             }}
           />
           {trip.cover_credit && (
@@ -329,20 +302,6 @@ export default function TripView({
         </div>
       </div>
 
-      {ask && (
-        <div className="trip-ask">
-          <p>Also mark the places on this trip as visited?</p>
-          <div className="page-actions">
-            <button type="button" className="primary" onClick={() => void finish(true)}>
-              Yes, mark the places
-            </button>
-            <button type="button" className="text" onClick={() => void finish(false)}>
-              No, only this trip
-            </button>
-          </div>
-        </div>
-      )}
-
       <div className="trip-spread">
       <section className="trip-block trip-places">
         <div className="trip-block-head">
@@ -359,6 +318,7 @@ export default function TripView({
             Add a place
           </button>
         </div>
+        <p className="lede">Finishing the trip marks these places visited. Undoing the trip clears that.</p>
         {detail.stops.length === 0 ? (
           <p className="links-empty">Add a place you want to visit. It can be new, or one you already saved.</p>
         ) : (

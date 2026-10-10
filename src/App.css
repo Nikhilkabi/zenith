@@ -387,6 +387,16 @@ a {
   font-size: 18px;
 }
 
+.lede {
+  margin: 0 0 14px;
+  max-width: 36rem;
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: 15px;
+  line-height: 1.4;
+  opacity: 0.72;
+}
+
 .page-title {
   font-size: 30px;
   font-weight: 600;
@@ -396,9 +406,10 @@ a {
 }
 
 .home-block + .home-block {
-  margin-top: 52px;
+  margin-top: 36px;
 }
 
+.home-board,
 .home-empty {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -406,13 +417,31 @@ a {
   align-items: start;
 }
 
+.home-board .home-block,
+.home-board .home-block + .home-block,
 .home-empty .home-block,
 .home-empty .home-block + .home-block {
   margin: 0;
 }
 
+.home-board .section-title::after,
 .home-empty .section-title::after {
   display: none;
+}
+
+.reel {
+  margin-bottom: 36px;
+}
+
+.reel .trip-group > .section-title {
+  margin: 0 0 14px;
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: 28px;
+  font-weight: 400;
+  letter-spacing: -0.02em;
+  text-transform: none;
+  opacity: 1;
 }
 
 .section-title {
@@ -481,6 +510,62 @@ a {
   margin: 0 0 8px;
 }
 
+.done-year {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  width: fit-content;
+  margin: 0 0 8px;
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: 15px;
+  line-height: 1.4;
+  opacity: 0.72;
+}
+
+.done-year input {
+  width: 4.5rem;
+  border: 0;
+  border-radius: 0;
+  border-bottom: 1px solid rgba(28, 30, 33, 0.18);
+  background: transparent;
+  backdrop-filter: none;
+  box-shadow: none;
+  padding: 0 0 2px;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+}
+
+.plan-date {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 0 0 8px;
+}
+
+.plan-date select,
+.plan-date input {
+  width: auto;
+  border: 0;
+  border-radius: 0;
+  border-bottom: 1px solid rgba(28, 30, 33, 0.18);
+  background: transparent;
+  backdrop-filter: none;
+  box-shadow: none;
+  padding: 4px 0;
+  font: inherit;
+  color: inherit;
+}
+
+.plan-date select {
+  min-width: 7.5rem;
+}
+
+.plan-date input {
+  width: 4.5rem;
+}
+
 .currency-line {
   width: 100%;
   min-width: 0;
@@ -541,7 +626,7 @@ a {
 .budget-line {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 9rem;
-  column-gap: 24px;
+  column-gap: 16px;
   align-items: center;
 }
 
@@ -549,18 +634,8 @@ a {
   margin: 0;
 }
 
-.budget-line > span:first-child {
-  display: flex;
-  align-items: baseline;
-  gap: 12px;
-  min-width: 0;
-}
-
-.budget-line > span:first-child::after {
-  content: "";
-  flex: 1;
-  border-bottom: 1px dotted rgba(28, 30, 33, 0.28);
-  transform: translateY(-4px);
+.budget .section-title::after {
+  display: none;
 }
 
 .budget-line input,
@@ -1024,6 +1099,7 @@ a {
   align-items: center;
   gap: 8px;
   flex-shrink: 0;
+  height: 18px;
 }
 
 .tile-count {
@@ -1031,6 +1107,7 @@ a {
   background: transparent;
   color: var(--ink);
   font-size: var(--t-12);
+  line-height: 18px;
   opacity: 0.55;
   padding: 0;
 }
@@ -1071,20 +1148,24 @@ a {
 }
 
 .mark {
-  width: calc(var(--unit) * 2.25);
-  height: calc(var(--unit) * 2.25);
-  border: 1px solid var(--stroke-dim);
+  width: 18px;
+  height: 18px;
+  flex: 0 0 18px;
+  border: 1.5px solid rgba(28, 30, 33, 0.28);
   border-radius: 50% !important;
   background: transparent;
+  box-shadow: none;
+  backdrop-filter: none;
   padding: 0;
+  line-height: 0;
   cursor: pointer;
-  display: inline-block;
-  flex-shrink: 0;
+  display: block;
 }
 
 .mark.been {
   background: var(--blue);
   border-color: var(--blue);
+  box-shadow: none;
 }
 
 .inline-text {
@@ -1709,8 +1790,10 @@ textarea {
     box-shadow: none;
   }
 
-  button.mark.been:not(:disabled):hover {
+  button.mark.been:not(:disabled):hover,
+  button.mark.been:not(:disabled):active {
     background: var(--blue);
+    box-shadow: none;
   }
 
   button.tile:not(:disabled):hover,
@@ -1818,6 +1901,12 @@ textarea {
 
   .when-line:hover,
   .when-line:focus,
+  .done-year input:hover,
+  .done-year input:focus,
+  .plan-date select:hover,
+  .plan-date select:focus,
+  .plan-date input:hover,
+  .plan-date input:focus,
   .currency-line:hover,
   .currency-line:focus,
   .budget-line input:hover,
@@ -1844,6 +1933,7 @@ textarea {
   .goal-head,
   .trip-spread,
   .place-spread,
+  .home-board,
   .home-empty {
     grid-template-columns: 1fr;
   }

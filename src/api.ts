@@ -227,6 +227,9 @@ export function updateTrip(
     notes?: string;
     status?: "dream" | "done";
     markPlaces?: boolean;
+    doneYear?: number;
+    month?: number;
+    planYear?: number;
   },
 ): Promise<Trip> {
   return invoke("update_trip", {
@@ -237,6 +240,9 @@ export function updateTrip(
     notes: patch.notes ?? null,
     status: patch.status ?? null,
     markPlaces: patch.markPlaces ?? false,
+    doneYear: patch.doneYear ?? null,
+    month: patch.month ?? null,
+    planYear: patch.planYear ?? null,
   });
 }
 
@@ -301,13 +307,16 @@ export function createGoal(name: string): Promise<Goal> {
 
 export function updateGoal(
   goalId: string,
-  patch: { name?: string; notes?: string; status?: "dream" | "done" },
+  patch: { name?: string; notes?: string; status?: "dream" | "done"; doneYear?: number; month?: number; planYear?: number },
 ): Promise<Goal> {
   return invoke("update_goal", {
     goalId,
     name: patch.name ?? null,
     notes: patch.notes ?? null,
     status: patch.status ?? null,
+    doneYear: patch.doneYear ?? null,
+    month: patch.month ?? null,
+    planYear: patch.planYear ?? null,
   });
 }
 

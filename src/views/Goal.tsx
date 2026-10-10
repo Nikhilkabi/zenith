@@ -5,6 +5,7 @@ import type { Goal } from "../types";
 import CoverImage from "../ui/CoverImage";
 import InlineText from "../ui/InlineText";
 import Mark from "../ui/Mark";
+import PlanDate from "../ui/PlanDate";
 import Skeleton from "../ui/Skeleton";
 import TwoClickDelete from "../ui/TwoClickDelete";
 import CoverPicker, { CoverCredit } from "./CoverPicker";
@@ -99,6 +100,15 @@ export default function GoalView({ goalId, libraryRoot, onDeleted, onChanged, on
               }}
             />
           </div>
+          <PlanDate
+            month={goal.month}
+            year={goal.year}
+            onSave={async (month, year) => {
+              const next = await updateGoal(goalId, { month, planYear: year });
+              setGoal(next);
+              onChanged();
+            }}
+          />
           {goal.cover_credit && (
             <p className="cover-credit">
               <CoverCredit credit={goal.cover_credit} url={goal.cover_credit_url} />

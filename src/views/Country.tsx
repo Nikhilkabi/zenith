@@ -101,6 +101,7 @@ export default function CountryView({
               onCountryUpdated(next);
             }}
           />
+          <p className="lede">Places live here. A trip is a plan that puts some of them in order.</p>
           <p className="meta">
             {places.length} places · {been} been
             {country.iso ? ` · ${country.iso}` : ""}

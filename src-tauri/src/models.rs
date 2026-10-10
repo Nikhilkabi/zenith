@@ -13,6 +13,9 @@ pub struct Goal {
     pub cover_y: f64,
     pub sort: i32,
     pub created_at: String,
+    pub done_year: Option<i32>,
+    pub month: Option<i32>,
+    pub year: Option<i32>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -88,6 +91,8 @@ pub struct Trip {
     pub stop_count: i32,
     pub total: i64,
     pub cost_count: i32,
+    pub done_year: Option<i32>,
+    pub month: Option<i32>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

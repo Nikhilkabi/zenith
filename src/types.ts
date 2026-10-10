@@ -10,6 +10,9 @@ export interface Goal {
   cover_y: number;
   sort: number;
   created_at: string;
+  done_year: number | null;
+  month: number | null;
+  year: number | null;
 }
 
 export interface CoverHit {
@@ -83,6 +86,8 @@ export interface Trip {
   stop_count: number;
   total: number;
   cost_count: number;
+  done_year: number | null;
+  month: number | null;
 }
 
 export interface TripStop {

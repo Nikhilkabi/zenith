@@ -532,6 +532,9 @@ pub fn update_goal(
     name: Option<String>,
     notes: Option<String>,
     status: Option<String>,
+    done_year: Option<i32>,
+    month: Option<i32>,
+    plan_year: Option<i32>,
 ) -> Result<Goal, String> {
     parse_id(&goal_id, "goal")?;
     db::update_goal(
@@ -540,6 +543,9 @@ pub fn update_goal(
         name.as_deref(),
         notes.as_deref(),
         status.as_deref(),
+        done_year,
+        month,
+        plan_year,
     )
     .map_err(map_err)
 }
@@ -576,6 +582,9 @@ pub fn update_trip(
     notes: Option<String>,
     status: Option<String>,
     mark_places: Option<bool>,
+    done_year: Option<i32>,
+    month: Option<i32>,
+    plan_year: Option<i32>,
 ) -> Result<Trip, String> {
     parse_id(&trip_id, "trip")?;
     db::update_trip(
@@ -587,6 +596,9 @@ pub fn update_trip(
         notes.as_deref(),
         status.as_deref(),
         mark_places.unwrap_or(false),
+        done_year,
+        month,
+        plan_year,
     )
     .map_err(map_err)
 }

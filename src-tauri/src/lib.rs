@@ -106,6 +106,7 @@ pub fn run() {
 mod tests {
     use super::*;
     use crate::db::{self, init_library_at};
+    use chrono::Datelike;
     use image::ImageEncoder;
     use uuid::Uuid;
 
@@ -256,7 +257,7 @@ mod tests {
         let state = init_library_at(dir.clone()).unwrap();
         let goal = db::create_goal(&state.conn, "Run a marathon").unwrap();
         assert_eq!(goal.status, "dream");
-        db::update_goal(&state.conn, &goal.id, None, Some("Boston"), Some("done")).unwrap();
+        db::update_goal(&state.conn, &goal.id, None, Some("Boston"), Some("done"), None, None, None).unwrap();
         let hits = db::search(&state.conn, "marathon").unwrap();
         assert!(hits.iter().any(|h| h.kind == "goal"));
         let notes = db::search(&state.conn, "Boston").unwrap();
@@ -360,6 +361,9 @@ mod tests {
             None,
             None,
             false,
+            None,
+            None,
+            None,
         )
         .unwrap();
         assert_eq!(dated.year, Some(2027));
@@ -373,6 +377,9 @@ mod tests {
             None,
             None,
             false,
+            None,
+            None,
+            None,
         )
         .unwrap();
         assert_eq!(someday.year, None);
@@ -387,8 +394,20 @@ mod tests {
         let cleared = db::set_trip_cost(&state.conn, &trip.id, "flights", None).unwrap();
         assert_eq!(cleared.trip.total, 12000);
 
-        db::update_trip(&state.conn, &trip.id, None, None, None, None, Some("done"), true).unwrap();
+        db::update_trip(&state.conn, &trip.id, None, None, None, None, Some("done"), true, None, None, None).unwrap();
         assert_eq!(db::get_place(&state.conn, &falls.id).unwrap().status, "been");
+        let finished = db::get_trip(&state.conn, &trip.id).unwrap();
+        assert_eq!(finished.year, Some(chrono::Utc::now().year()));
+        let past = db::update_trip(&state.conn, &trip.id, None, None, None, None, None, true, None, Some(6), Some(2023)).unwrap();
+        assert_eq!(past.status, "done");
+        assert_eq!(past.done_year, Some(2023));
+        assert_eq!(past.when_text.as_deref(), Some("June 2023"));
+        let planned = db::update_trip(&state.conn, &trip.id, None, None, None, None, None, false, None, Some(5), Some(2027)).unwrap();
+        assert_eq!(planned.status, "dream");
+        assert_eq!(planned.done_year, None);
+        assert_eq!(db::get_place(&state.conn, &falls.id).unwrap().status, "dream");
+        db::update_trip(&state.conn, &trip.id, None, None, None, None, Some("dream"), false, None, None, None).unwrap();
+        assert_eq!(db::get_place(&state.conn, &falls.id).unwrap().status, "dream");
 
         let task = db::add_place_task(&state.conn, &falls.id, "Sunrise viewpoint").unwrap();
         let done = db::set_place_task(&state.conn, &task.id, None, Some(true)).unwrap();

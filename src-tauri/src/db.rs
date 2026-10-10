@@ -2,7 +2,7 @@ use crate::models::{
     Country, Goal, ImageRecord, LinkRecord, Place, PlaceTask, SearchHit, TrashItem, Trip, TripCost,
     TripDetail, TripStop,
 };
-use chrono::Utc;
+use chrono::{Datelike, Utc};
 use rusqlite::{params, Connection};
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -38,6 +38,9 @@ const MIGRATIONS: &[(i32, &str)] = &[
     (3, include_str!("migrations/003_goals.sql")),
     (4, include_str!("migrations/004_cover_focus.sql")),
     (5, include_str!("migrations/005_trips.sql")),
+    (6, include_str!("migrations/006_done_year.sql")),
+    (7, include_str!("migrations/007_clear_reverted_places.sql")),
+    (8, include_str!("migrations/008_plan_date.sql")),
 ];
 
 pub fn init_library() -> Result<AppState, DbError> {
@@ -903,7 +906,7 @@ pub fn delete_link(conn: &Connection, id: &str) -> Result<(), DbError> {
 }
 
 const GOAL_SELECT: &str = "SELECT g.id, g.name, g.notes, g.status, g.cover_relpath,
-            c.credit, c.credit_url, g.sort, g.created_at, g.cover_x, g.cover_y
+            c.credit, c.credit_url, g.sort, g.created_at, g.cover_x, g.cover_y, g.done_year, g.month, g.year
      FROM goals g
      LEFT JOIN cover_credits c ON c.relpath = g.cover_relpath";
 
@@ -920,6 +923,9 @@ fn map_goal(row: &rusqlite::Row<'_>) -> rusqlite::Result<Goal> {
         cover_y: row.get(10)?,
         sort: row.get(7)?,
         created_at: row.get(8)?,
+        done_year: row.get(11)?,
+        month: row.get(12)?,
+        year: row.get(13)?,
     })
 }
 
@@ -969,6 +975,9 @@ pub fn update_goal(
     name: Option<&str>,
     notes: Option<&str>,
     status: Option<&str>,
+    done_year: Option<i32>,
+    month: Option<i32>,
+    plan_year: Option<i32>,
 ) -> Result<Goal, DbError> {
     let mut goal = get_goal(conn, goal_id)?;
     if let Some(name) = name {
@@ -986,15 +995,44 @@ pub fn update_goal(
             Some(trimmed.to_string())
         };
     }
+    if let (Some(month), Some(year)) = (month, plan_year) {
+        let chosen = chosen_date(month, year)?;
+        goal.month = Some(chosen.month);
+        goal.year = Some(chosen.year);
+        if chosen.past {
+            goal.status = "done".to_string();
+            goal.done_year = Some(chosen.year);
+        } else {
+            goal.status = "dream".to_string();
+            goal.done_year = None;
+        }
+    }
     if let Some(status) = status {
-        goal.status = match status {
-            "done" | "been" => "done".to_string(),
-            _ => "dream".to_string(),
+        let next = match status {
+            "done" | "been" => "done",
+            _ => "dream",
         };
+        if next == "done" {
+            let today = current_date();
+            goal.month = Some(today.month);
+            goal.year = Some(today.year);
+            goal.done_year = Some(today.year);
+            goal.status = "done".to_string();
+        } else {
+            goal.month = None;
+            goal.year = None;
+            goal.done_year = None;
+            goal.status = "dream".to_string();
+        }
+    }
+    if let Some(year) = done_year {
+        if goal.status == "done" {
+            goal.done_year = Some(done_year_in(year)?);
+        }
     }
     conn.execute(
-        "UPDATE goals SET name = ?1, notes = ?2, status = ?3 WHERE id = ?4",
-        params![goal.name, goal.notes, goal.status, goal_id],
+        "UPDATE goals SET name = ?1, notes = ?2, status = ?3, done_year = ?4, month = ?5, year = ?6 WHERE id = ?7",
+        params![goal.name, goal.notes, goal.status, goal.done_year, goal.month, goal.year, goal_id],
     )?;
     get_goal(conn, goal_id)
 }
@@ -1146,6 +1184,63 @@ const TRIP_COSTS: &[&str] = &[
     "other",
 ];
 
+const MONTHS: [&str; 12] = [
+    "January",
+    "February",
+    "March",
+    "April",
+    "May",
+    "June",
+    "July",
+    "August",
+    "September",
+    "October",
+    "November",
+    "December",
+];
+
+struct ChosenDate {
+    month: i32,
+    year: i32,
+    label: String,
+    past: bool,
+}
+
+fn chosen_date(month: i32, year: i32) -> Result<ChosenDate, DbError> {
+    if !(1..=12).contains(&month) {
+        return Err(DbError::msg("Choose a month"));
+    }
+    let year = done_year_in(year)?;
+    let now = Utc::now();
+    let past = year < now.year() || (year == now.year() && (month as u32) < now.month());
+    Ok(ChosenDate {
+        month,
+        year,
+        label: format!("{} {}", MONTHS[(month as usize) - 1], year),
+        past,
+    })
+}
+
+fn current_date() -> ChosenDate {
+    let now = Utc::now();
+    let month = now.month() as i32;
+    let year = now.year();
+    ChosenDate {
+        month,
+        year,
+        label: format!("{} {}", MONTHS[(month as usize) - 1], year),
+        past: false,
+    }
+}
+
+fn done_year_in(year: i32) -> Result<i32, DbError> {
+    if (1900..2200).contains(&year) {
+        Ok(year)
+    } else {
+        Err(DbError::msg("Use a year like 2026"))
+    }
+}
+
 fn year_in(text: &str) -> Option<i32> {
     let chars: Vec<char> = text.chars().collect();
     let mut index = 0;
@@ -1182,7 +1277,9 @@ const TRIP_SELECT: &str = "SELECT t.id, t.name, t.when_text, t.year, t.currency,
             JOIN places p ON p.id = s.place_id AND p.deleted_at IS NULL
             WHERE s.trip_id = t.id) AS stop_count,
         (SELECT COALESCE(SUM(amount), 0) FROM trip_costs k WHERE k.trip_id = t.id) AS total,
-        (SELECT COUNT(*) FROM trip_costs k WHERE k.trip_id = t.id) AS cost_count
+        (SELECT COUNT(*) FROM trip_costs k WHERE k.trip_id = t.id) AS cost_count,
+        t.done_year,
+        t.month
      FROM trips t
      LEFT JOIN cover_credits c ON c.relpath = t.cover_relpath";
 
@@ -1205,6 +1302,8 @@ fn map_trip(row: &rusqlite::Row<'_>) -> rusqlite::Result<Trip> {
         stop_count: row.get(14)?,
         total: row.get(15)?,
         cost_count: row.get(16)?,
+        done_year: row.get(17)?,
+        month: row.get(18)?,
     })
 }
 
@@ -1256,6 +1355,9 @@ pub fn update_trip(
     notes: Option<&str>,
     status: Option<&str>,
     mark_places: bool,
+    done_year: Option<i32>,
+    month: Option<i32>,
+    plan_year: Option<i32>,
 ) -> Result<Trip, DbError> {
     let mut trip = get_trip(conn, trip_id)?;
     if let Some(name) = name {
@@ -1282,21 +1384,77 @@ pub fn update_trip(
         let trimmed = notes.trim();
         trip.notes = if trimmed.is_empty() { None } else { Some(trimmed.to_string()) };
     }
-    let marking_done = status.is_some_and(|value| value == "done" || value == "been") && trip.status != "done";
+    let was_done = trip.status == "done";
+    if let (Some(month), Some(year)) = (month, plan_year) {
+        let chosen = chosen_date(month, year)?;
+        trip.month = Some(chosen.month);
+        trip.year = Some(chosen.year);
+        trip.when_text = Some(chosen.label);
+        if chosen.past {
+            trip.status = "done".to_string();
+            trip.done_year = Some(chosen.year);
+        } else {
+            trip.status = "dream".to_string();
+            trip.done_year = None;
+        }
+    }
     if let Some(status) = status {
-        trip.status = match status {
-            "done" | "been" => "done".to_string(),
-            _ => "dream".to_string(),
+        let next = match status {
+            "done" | "been" => "done",
+            _ => "dream",
         };
+        if next == "done" {
+            let today = current_date();
+            trip.month = Some(today.month);
+            trip.year = Some(today.year);
+            trip.when_text = Some(today.label);
+            trip.done_year = Some(today.year);
+            trip.status = "done".to_string();
+        } else {
+            trip.month = None;
+            trip.year = None;
+            trip.when_text = None;
+            trip.done_year = None;
+            trip.status = "dream".to_string();
+        }
+    }
+    if let Some(year) = done_year {
+        if trip.status == "done" {
+            trip.done_year = Some(done_year_in(year)?);
+        }
     }
     conn.execute(
-        "UPDATE trips SET name = ?1, when_text = ?2, year = ?3, currency = ?4, notes = ?5, status = ?6 WHERE id = ?7",
-        params![trip.name, trip.when_text, trip.year, trip.currency, trip.notes, trip.status, trip_id],
+        "UPDATE trips SET name = ?1, when_text = ?2, year = ?3, currency = ?4, notes = ?5, status = ?6, done_year = ?7, month = ?8 WHERE id = ?9",
+        params![
+            trip.name,
+            trip.when_text,
+            trip.year,
+            trip.currency,
+            trip.notes,
+            trip.status,
+            trip.done_year,
+            trip.month,
+            trip_id
+        ],
     )?;
+    let marking_done = trip.status == "done" && !was_done;
+    let clearing_done = was_done && trip.status != "done";
     if marking_done && mark_places {
         conn.execute(
             "UPDATE places SET status = 'been'
              WHERE deleted_at IS NULL AND id IN (SELECT place_id FROM trip_stops WHERE trip_id = ?1)",
+            params![trip_id],
+        )?;
+    }
+    if clearing_done {
+        conn.execute(
+            "UPDATE places SET status = 'dream'
+             WHERE deleted_at IS NULL
+               AND id IN (SELECT place_id FROM trip_stops WHERE trip_id = ?1)
+               AND id NOT IN (
+                 SELECT s.place_id FROM trip_stops s
+                 JOIN trips t ON t.id = s.trip_id AND t.deleted_at IS NULL AND t.status = 'done' AND t.id != ?1
+               )",
             params![trip_id],
         )?;
     }

@@ -33,7 +33,7 @@ export default function App() {
   const [query, setQuery] = useState("");
   const [sheet, setSheet] = useState(false);
   const [sources, setSources] = useState(false);
-  const [homeFilter, setHomeFilter] = useState<StatusFilter>("all");
+  const [homeFilter, setHomeFilter] = useState<StatusFilter>("dream");
   const searchRef = useRef<HTMLInputElement>(null);
 
   const onError = useCallback((message: string | null) => {
