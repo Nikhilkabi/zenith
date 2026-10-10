@@ -207,7 +207,7 @@ export default function App() {
           <Menu
             items={[
               {
-                label: "Library folder",
+                label: "Show saved files",
                 onClick: () => void revealLibrary().catch((e) => setError(String(e))),
               },
               {
@@ -244,7 +244,7 @@ export default function App() {
                 onClick: () => setSources(true),
               },
               {
-                label: "Keys",
+                label: "Shortcuts",
                 onClick: () => setSheet(true),
               },
             ]}

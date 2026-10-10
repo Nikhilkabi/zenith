@@ -47,7 +47,7 @@ export default function PhotoSources({ onClose, onError }: Props) {
           </button>
         </div>
         <p className="meta">
-          Openverse works with no key. Pexels and Pixabay are free and need a key from their sites. The keys stay on this computer.
+          You do not need this to choose a cover. Free photos already work. Pexels and Pixabay are extra photo sites. Add a key only if you want their pictures too. The keys stay on this computer.
         </p>
         <div className="source-fields">
           <label>

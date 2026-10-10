@@ -90,6 +90,7 @@ export default function Home({
         <FilterBar value={filter} onChange={onFilter} doneLabel="Done" />
       </div>
 
+      <div className={trips.length + goals.length + countries.length === 0 ? "home-empty" : undefined}>
       <section className="home-block">
         <h2 className="section-title">Trips</h2>
         {tripGroups.map((group) => (
@@ -112,6 +113,12 @@ export default function Home({
                   onToggleBeen={() => {
                     if (trip.status === "done") {
                       updateTrip(trip.id, { status: "dream" })
+                        .then((next) => onTripsChanged(trips.map((item) => (item.id === next.id ? next : item))))
+                        .catch((err) => onError(String(err)));
+                      return;
+                    }
+                    if (trip.stop_count === 0) {
+                      updateTrip(trip.id, { status: "done", markPlaces: false })
                         .then((next) => onTripsChanged(trips.map((item) => (item.id === next.id ? next : item))))
                         .catch((err) => onError(String(err)));
                       return;
@@ -248,6 +255,7 @@ export default function Home({
         />
         </TileGrid>
       </section>
+      </div>
 
       {goals.length === 0 && countries.length === 0 && trips.length === 0 && (
         <p className="hint">
@@ -259,7 +267,7 @@ export default function Home({
         <div className="sheet" role="dialog" aria-modal aria-label="Mark trip done" onClick={() => setAsk(null)}>
           <div className="sheet-card" onClick={(event) => event.stopPropagation()}>
             <h1 className="page-title">Mark {ask.name} done</h1>
-            <p className="meta">Mark the places on this trip as been?</p>
+            <p className="meta">Also mark the places on this trip as visited?</p>
             <div className="page-actions source-actions">
               <button
                 type="button"
@@ -275,7 +283,7 @@ export default function Home({
                     .catch((err) => onError(String(err)));
                 }}
               >
-                Mark them been
+                Yes, mark the places
               </button>
               <button
                 type="button"
@@ -288,7 +296,7 @@ export default function Home({
                     .catch((err) => onError(String(err)));
                 }}
               >
-                Just the trip
+                No, only this trip
               </button>
             </div>
           </div>

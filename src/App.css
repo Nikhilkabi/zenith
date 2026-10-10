@@ -399,6 +399,22 @@ a {
   margin-top: 52px;
 }
 
+.home-empty {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 22px;
+  align-items: start;
+}
+
+.home-empty .home-block,
+.home-empty .home-block + .home-block {
+  margin: 0;
+}
+
+.home-empty .section-title::after {
+  display: none;
+}
+
 .section-title {
   display: flex;
   align-items: center;
@@ -654,6 +670,18 @@ a {
   max-height: 50vh;
   overflow: auto;
   margin-top: 12px;
+}
+
+.new-place {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.new-place .when-line {
+  width: 100%;
 }
 
 .trip-ask {
@@ -1815,7 +1843,8 @@ textarea {
 @media (max-width: 800px) {
   .goal-head,
   .trip-spread,
-  .place-spread {
+  .place-spread,
+  .home-empty {
     grid-template-columns: 1fr;
   }
 

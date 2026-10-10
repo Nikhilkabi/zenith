@@ -213,7 +213,7 @@ export default function CoverPicker({
       } catch (err) {
         if (token !== request.current) return;
         setHits([]);
-        setNote(String(err));
+        setNote(`${String(err)} You can still use a photo from your computer.`);
       } finally {
         if (token === request.current) setSearching(false);
       }
@@ -271,7 +271,9 @@ export default function CoverPicker({
       await onApplied();
       onClose();
     } catch (err) {
-      onError(String(err));
+      const message = String(err);
+      setNote(message);
+      onError(message);
     } finally {
       setBusyId(null);
     }
@@ -301,7 +303,7 @@ export default function CoverPicker({
             <p className="meta">
               {draft
                 ? "Drag the photo so the part you want sits in the middle."
-                : "Openverse, Pexels, and Pixabay. Add the Pexels and Pixabay keys from the menu. The photo you pick is saved in your library."}
+                : "Search for a free photo, or choose one from your computer. Then press Save cover. No account is required."}
             </p>
           </div>
           <button type="button" className="text" onClick={onClose}>
@@ -319,6 +321,7 @@ export default function CoverPicker({
               onChange={updateDraft}
             />
             {draft.kind === "stock" && <p className="cover-credit">{draft.credit}</p>}
+            {note && <p className="hint">{note}</p>}
             <div className="cover-frame-actions">
               <button type="button" className="text" onClick={back} disabled={busyId != null}>
                 Back
@@ -343,7 +346,7 @@ export default function CoverPicker({
                   });
                 }}
               >
-                {busyId === "save" ? "Saving" : "Use this cover"}
+                {busyId === "save" ? "Saving" : "Save cover"}
               </button>
             </div>
           </>
@@ -398,7 +401,9 @@ export default function CoverPicker({
                       });
                       onError(null);
                     } catch (err) {
-                      onError(String(err));
+                      const message = String(err);
+                      setNote(message);
+                      onError(message);
                     } finally {
                       setBusyId(null);
                     }

@@ -1,6 +1,8 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
 import {
   addTripStop,
+  createCountry,
+  createPlace,
   deleteTrip,
   getTrip,
   listAllPlaces,
@@ -9,6 +11,7 @@ import {
   setTripCost,
   updateTrip,
 } from "../api";
+import { matchCountries } from "../data/countries";
 import { assetUrl } from "../lib/assets";
 import type { Country, Place, TripDetail } from "../types";
 import { TRIP_COSTS } from "../types";
@@ -62,6 +65,8 @@ export default function TripView({
   const [adding, setAdding] = useState(false);
   const [catalog, setCatalog] = useState<Place[]>([]);
   const [placeQuery, setPlaceQuery] = useState("");
+  const [newName, setNewName] = useState("");
+  const [newCountry, setNewCountry] = useState("");
   const hydratedFor = useRef<string | null>(null);
   const whenTimer = useRef<number | null>(null);
   const currencyTimer = useRef<number | null>(null);
@@ -159,6 +164,40 @@ export default function TripView({
     }
   }
 
+  function focusNextCost(event: KeyboardEvent<HTMLInputElement>) {
+    if (event.key !== "Enter") return;
+    event.preventDefault();
+    const inputs = Array.from(
+      event.currentTarget.closest(".budget")?.querySelectorAll("input") ?? [],
+    );
+    const next = inputs[inputs.indexOf(event.currentTarget) + 1] as HTMLInputElement | undefined;
+    if (next) next.focus();
+    else event.currentTarget.blur();
+  }
+
+  async function createStop() {
+    const placeName = newName.trim();
+    const countryName = newCountry.trim();
+    if (!placeName || !countryName) return;
+    try {
+      const existing = countries.find((item) => item.name.toLowerCase() === countryName.toLowerCase());
+      const known = matchCountries(countryName).find(
+        (item) => item.name.toLowerCase() === countryName.toLowerCase(),
+      );
+      const countryId =
+        existing?.id ?? (await createCountry(known?.name ?? countryName, known?.iso)).id;
+      const place = await createPlace(countryId, placeName);
+      applyDetail(await addTripStop(tripId, place.id));
+      setNewName("");
+      setNewCountry("");
+      setAdding(false);
+      onChanged();
+      onError(null);
+    } catch (err) {
+      onError(String(err));
+    }
+  }
+
   async function moveStop(index: number, direction: -1 | 1) {
     if (!detail) return;
     const next = detail.stops.slice();
@@ -234,6 +273,10 @@ export default function TripView({
                     .catch((err) => onError(String(err)));
                   return;
                 }
+                if (detail.stops.length === 0) {
+                  void finish(false);
+                  return;
+                }
                 setAsk(true);
               }}
             />
@@ -288,13 +331,13 @@ export default function TripView({
 
       {ask && (
         <div className="trip-ask">
-          <p>Mark the places on this trip as been?</p>
+          <p>Also mark the places on this trip as visited?</p>
           <div className="page-actions">
             <button type="button" className="primary" onClick={() => void finish(true)}>
-              Mark them been
+              Yes, mark the places
             </button>
             <button type="button" className="text" onClick={() => void finish(false)}>
-              Just the trip
+              No, only this trip
             </button>
           </div>
         </div>
@@ -317,7 +360,7 @@ export default function TripView({
           </button>
         </div>
         {detail.stops.length === 0 ? (
-          <p className="links-empty">Add places you already saved, in the order you would go.</p>
+          <p className="links-empty">Add a place you want to visit. It can be new, or one you already saved.</p>
         ) : (
           <ol className="stop-list">
             {detail.stops.map((stop, index) => (
@@ -386,6 +429,7 @@ export default function TripView({
               if (currencyTimer.current != null) window.clearTimeout(currencyTimer.current);
               void saveCurrency(currency);
             }}
+            onKeyDown={focusNextCost}
           />
         </div>
         {detail.costs.map((cost) => (
@@ -401,6 +445,7 @@ export default function TripView({
                 setAmounts((current) => ({ ...current, [cost.category]: value }));
               }}
               onBlur={() => void saveAmount(cost.category, amounts[cost.category] ?? "")}
+              onKeyDown={focusNextCost}
             />
           </label>
         ))}
@@ -437,15 +482,51 @@ export default function TripView({
                 Close
               </button>
             </div>
+            <form
+              className="new-place"
+              onSubmit={(event) => {
+                event.preventDefault();
+                void createStop();
+              }}
+            >
+              <input
+                className="when-line"
+                value={newName}
+                placeholder="Place, such as Hanoi"
+                onChange={(event) => setNewName(event.target.value)}
+              />
+              <input
+                className="when-line"
+                value={newCountry}
+                placeholder="Country, such as Vietnam"
+                onChange={(event) => setNewCountry(event.target.value)}
+              />
+              <button type="submit" className="primary">
+                Add to this trip
+              </button>
+            </form>
+            {matchCountries(newCountry).slice(0, 4).length > 0 && newCountry.trim() && (
+              <ul className="place-pick">
+                {matchCountries(newCountry)
+                  .slice(0, 4)
+                  .map((item) => (
+                    <li key={item.iso}>
+                      <button type="button" onClick={() => setNewCountry(item.name)}>
+                        <span>{item.name}</span>
+                      </button>
+                    </li>
+                  ))}
+              </ul>
+            )}
             <input
               className="when-line"
               value={placeQuery}
-              placeholder="Search places"
+              placeholder="Or search places you already saved"
               onChange={(event) => setPlaceQuery(event.target.value)}
             />
-            {choices.length === 0 ? (
-              <p className="links-empty">No places left to add.</p>
-            ) : (
+            {placeQuery.trim() && choices.length === 0 ? (
+              <p className="links-empty">No saved places match that yet.</p>
+            ) : choices.length > 0 ? (
               <ul className="place-pick">
                 {choices.map((place) => {
                   const country = countries.find((item) => item.id === place.country_id)?.name;
@@ -470,7 +551,7 @@ export default function TripView({
                   );
                 })}
               </ul>
-            )}
+            ) : null}
           </div>
         </div>
       )}
