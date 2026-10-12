@@ -16,6 +16,7 @@ import { normalizeImageFile } from "../lib/normalizeImage";
 import type { ImageRecord, Place } from "../types";
 import InlineText from "../ui/InlineText";
 import Mark from "../ui/Mark";
+import PlanDate from "../ui/PlanDate";
 import Skeleton from "../ui/Skeleton";
 import TwoClickDelete from "../ui/TwoClickDelete";
 import CoverPicker, { CoverCredit } from "./CoverPicker";
@@ -44,7 +45,6 @@ export default function PlaceView({
   const [place, setPlace] = useState<Place | null>(null);
   const [images, setImages] = useState<ImageRecord[]>([]);
   const [notes, setNotes] = useState("");
-  const [whenText, setWhenText] = useState("");
   const [viewerIndex, setViewerIndex] = useState<number | null>(null);
   const [byDate, setByDate] = useState(false);
   const [drag, setDrag] = useState(false);
@@ -53,12 +53,9 @@ export default function PlaceView({
   const [adding, setAdding] = useState(false);
   const [credit, setCredit] = useState<string | null>(null);
   const notesTimer = useRef<number | null>(null);
-  const whenTimer = useRef<number | null>(null);
   const notesRef = useRef(notes);
-  const whenRef = useRef(whenText);
   const notesHydratedFor = useRef<string | null>(null);
   notesRef.current = notes;
-  whenRef.current = whenText;
 
   const refresh = useCallback(async () => {
     const [nextPlace, nextImages] = await Promise.all([
@@ -69,7 +66,6 @@ export default function PlaceView({
     setImages(nextImages);
     if (notesHydratedFor.current !== placeId) {
       setNotes(nextPlace.notes ?? "");
-      setWhenText(nextPlace.when_text ?? "");
       notesHydratedFor.current = placeId;
     }
   }, [placeId]);
@@ -87,18 +83,6 @@ export default function PlaceView({
       .then((next) => setCredit(next?.credit ?? null))
       .catch(() => setCredit(null));
   }, [place?.cover_relpath]);
-
-  const saveWhen = useCallback(
-    async (value: string) => {
-      try {
-        const next = await updatePlace(placeId, { whenText: value });
-        setPlace(next);
-      } catch (err) {
-        onError(String(err));
-      }
-    },
-    [placeId, onError],
-  );
 
   const saveNotes = useCallback(
     async (value: string) => {
@@ -118,12 +102,8 @@ export default function PlaceView({
         window.clearTimeout(notesTimer.current);
         void saveNotes(notesRef.current);
       }
-      if (whenTimer.current != null) {
-        window.clearTimeout(whenTimer.current);
-        void saveWhen(whenRef.current);
-      }
     };
-  }, [saveNotes, saveWhen]);
+  }, [saveNotes]);
 
   const importFiles = useCallback(
     async (files: FileList | File[]) => {
@@ -218,7 +198,10 @@ export default function PlaceView({
               updatePlace(placeId, {
                 status: place.status === "been" ? "dream" : "been",
               })
-                .then(setPlace)
+                .then((next) => {
+                  setPlace(next);
+                  onLibraryChanged?.();
+                })
                 .catch((err) => onError(String(err)));
             }}
           />
@@ -273,22 +256,13 @@ export default function PlaceView({
 
       <div className="place-spread">
       <div className="writing">
-      <input
-        className="when-line"
-        value={whenText}
-        placeholder="When, if you know — June 2027"
-        onChange={(e) => {
-          const value = e.target.value;
-          setWhenText(value);
-          if (whenTimer.current != null) window.clearTimeout(whenTimer.current);
-          whenTimer.current = window.setTimeout(() => void saveWhen(value), 500);
-        }}
-        onBlur={() => {
-          if (whenTimer.current != null) {
-            window.clearTimeout(whenTimer.current);
-            whenTimer.current = null;
-          }
-          void saveWhen(whenText);
+      <PlanDate
+        month={place.month}
+        year={place.year}
+        onSave={async (month, year) => {
+          const next = await updatePlace(placeId, { month, planYear: year });
+          setPlace(next);
+          onLibraryChanged?.();
         }}
       />
 

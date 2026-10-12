@@ -414,6 +414,76 @@ mod tests {
         assert!(done.done);
         let hits = db::search(&state.conn, "Java").unwrap();
         assert!(hits.iter().any(|hit| hit.kind == "trip"));
+        let tasks = db::search(&state.conn, "Sunrise").unwrap();
+        assert!(tasks.iter().any(|hit| hit.kind == "place" && hit.title == "Tumpak Sewu"));
+        let _ = std::fs::remove_dir_all(dir);
+    }
+
+    #[test]
+    fn place_plan_date() {
+        let dir = std::env::temp_dir().join(format!("bucket-test-{}", Uuid::new_v4()));
+        let state = init_library_at(dir.clone()).unwrap();
+        let country = db::create_country(&state.conn, "Indonesia", Some("ID")).unwrap();
+        let place = db::create_place(&state.conn, &country.id, "Ubud", None).unwrap();
+        let past = db::update_place(
+            &state.conn,
+            &place.id,
+            None,
+            None,
+            None,
+            None,
+            Some(6),
+            Some(2023),
+        )
+        .unwrap();
+        assert_eq!(past.status, "been");
+        assert_eq!(past.month, Some(6));
+        assert_eq!(past.year, Some(2023));
+        assert_eq!(past.when_text.as_deref(), Some("June 2023"));
+        let planned = db::update_place(
+            &state.conn,
+            &place.id,
+            None,
+            None,
+            None,
+            None,
+            Some(5),
+            Some(2027),
+        )
+        .unwrap();
+        assert_eq!(planned.status, "dream");
+        assert_eq!(planned.when_text.as_deref(), Some("May 2027"));
+        let found = db::search(&state.conn, "May 2027").unwrap();
+        assert!(found.iter().any(|hit| hit.kind == "place" && hit.title == "Ubud"));
+        let checked = db::update_place(
+            &state.conn,
+            &place.id,
+            None,
+            None,
+            Some("been"),
+            None,
+            None,
+            None,
+        )
+        .unwrap();
+        assert_eq!(checked.status, "been");
+        assert_eq!(checked.year, Some(chrono::Utc::now().year()));
+        assert_eq!(checked.month, Some(chrono::Utc::now().month() as i32));
+        let cleared = db::update_place(
+            &state.conn,
+            &place.id,
+            None,
+            None,
+            Some("dream"),
+            None,
+            None,
+            None,
+        )
+        .unwrap();
+        assert_eq!(cleared.status, "dream");
+        assert_eq!(cleared.month, None);
+        assert_eq!(cleared.year, None);
+        assert_eq!(cleared.when_text, None);
         let _ = std::fs::remove_dir_all(dir);
     }
 }

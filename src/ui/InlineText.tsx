@@ -64,9 +64,9 @@ export default function InlineText({
     <Tag
       className={`inline-text ${className}`.trim()}
       onClick={() => setEditing(true)}
-      title="Click to rename"
     >
       {value}
+      <span className="rename-tip">Click to rename</span>
     </Tag>
   );
 }

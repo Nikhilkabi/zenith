@@ -388,7 +388,7 @@ a {
 }
 
 .lede {
-  margin: 0 0 14px;
+  margin: 8px 0 14px;
   max-width: 36rem;
   font-family: var(--serif);
   font-style: italic;
@@ -691,6 +691,11 @@ a {
   gap: 8px;
 }
 
+.stop-list {
+  touch-action: none;
+  user-select: none;
+}
+
 .stop-list li,
 .task-list li {
   display: flex;
@@ -700,6 +705,49 @@ a {
   border: 1px solid var(--stroke);
   border-radius: 16px;
   background: rgba(255, 255, 255, 0.48);
+}
+
+.stop-list li {
+  position: relative;
+  transition: transform 180ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  cursor: grab;
+}
+
+.stop-list.is-settling li {
+  transition: none;
+}
+
+html.stop-dragging,
+html.stop-dragging * {
+  cursor: grabbing !important;
+}
+
+.stop-handle {
+  flex: 0 0 18px;
+  width: 18px;
+  height: 28px;
+  padding: 0;
+  border: 0;
+  border-radius: 6px;
+  background-color: transparent;
+  background-image: radial-gradient(circle, rgba(28, 30, 33, 0.45) 1.15px, transparent 1.3px);
+  background-size: 6px 6px;
+  background-position: center;
+  box-shadow: none;
+  backdrop-filter: none;
+  cursor: grab;
+}
+
+.stop-handle:active {
+  cursor: grabbing;
+}
+
+.stop-list li.is-dragging {
+  z-index: 3;
+  transition: none;
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: 0 16px 32px rgba(28, 40, 70, 0.18);
+  pointer-events: none;
 }
 
 .stop-name,
@@ -1170,8 +1218,33 @@ a {
 
 .inline-text {
   display: inline;
+  position: relative;
   cursor: text;
   border-bottom: var(--rule) solid transparent;
+}
+
+.rename-tip {
+  position: absolute;
+  left: 0;
+  bottom: calc(100% + 8px);
+  padding: 4px 8px;
+  border-radius: 8px;
+  background: var(--ink);
+  color: #fff;
+  font-family: var(--font);
+  font-size: 12px;
+  font-weight: 500;
+  font-style: normal;
+  letter-spacing: 0;
+  line-height: 1.2;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  z-index: 5;
+}
+
+.inline-text:hover .rename-tip {
+  opacity: 1;
 }
 
 .inline-text:hover {
@@ -1756,6 +1829,16 @@ textarea {
   button:not(:disabled):hover,
   button:not(:disabled):active {
     transform: none;
+  }
+
+  .stop-handle:hover,
+  .stop-handle:active {
+    transform: none;
+    background-color: transparent;
+    background-image: radial-gradient(circle, rgba(28, 30, 33, 0.7) 1.15px, transparent 1.3px);
+    background-size: 6px 6px;
+    background-position: center;
+    box-shadow: none;
   }
 
   button:not(:disabled):hover {

@@ -29,6 +29,7 @@ interface Props {
   onCountryUpdated: (country: Country) => void;
   onCountryDeleted: () => void;
   onCoverChanged: () => void;
+  onLibraryChanged: () => void;
   onError: (message: string | null) => void;
 }
 
@@ -39,6 +40,7 @@ export default function CountryView({
   onCountryUpdated,
   onCountryDeleted,
   onCoverChanged,
+  onLibraryChanged,
   onError,
 }: Props) {
   const [places, setPlaces] = useState<Place[] | null>(null);
@@ -167,11 +169,12 @@ export default function CountryView({
               updatePlace(place.id, {
                 status: place.status === "been" ? "dream" : "been",
               })
-                .then((next) =>
+                .then((next) => {
                   setPlaces((current) =>
                     (current ?? []).map((p) => (p.id === next.id ? next : p)),
-                  ),
-                )
+                  );
+                  onLibraryChanged();
+                })
                 .catch((err) => onError(String(err)));
             }}
             onReorder={(fromId, toId) => {

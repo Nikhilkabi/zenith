@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent, type PointerEvent as ReactPointerEvent } from "react";
 import {
   addTripStop,
   createCountry,
@@ -13,6 +13,7 @@ import {
 } from "../api";
 import { matchCountries } from "../data/countries";
 import { assetUrl } from "../lib/assets";
+import { moveItem } from "../lib/reorder";
 import type { Country, Place, TripDetail } from "../types";
 import { TRIP_COSTS } from "../types";
 import CoverImage from "../ui/CoverImage";
@@ -62,6 +63,15 @@ export default function TripView({
   const [picker, setPicker] = useState(false);
   const [adjusting, setAdjusting] = useState(false);
   const [adding, setAdding] = useState(false);
+  const [drag, setDrag] = useState<{
+    id: string;
+    dy: number;
+    fromIndex: number;
+    overIndex: number;
+    stride: number;
+  } | null>(null);
+  const suppressOpen = useRef(false);
+  const settleRef = useRef<{ id: string; top: number; left: number } | null>(null);
   const [catalog, setCatalog] = useState<Place[]>([]);
   const [placeQuery, setPlaceQuery] = useState("");
   const [newName, setNewName] = useState("");
@@ -183,16 +193,99 @@ export default function TripView({
     }
   }
 
-  async function moveStop(index: number, direction: -1 | 1) {
-    if (!detail) return;
-    const next = detail.stops.slice();
-    const target = index + direction;
-    if (target < 0 || target >= next.length) return;
-    const [item] = next.splice(index, 1);
-    next.splice(target, 0, item);
+  function startReorder(event: ReactPointerEvent<HTMLLIElement>, placeId: string) {
+    if (event.button !== 0) return;
+    const target = event.target;
+    if (target instanceof Element && target.closest(".page-actions")) return;
+    const list = event.currentTarget.parentElement;
+    if (!list) return;
+    const rows = [...list.querySelectorAll<HTMLElement>("[data-stop-id]")];
+    const fromIndex = rows.findIndex((row) => row.dataset.stopId === placeId);
+    if (fromIndex < 0) return;
+    const boxes = rows.map((row) => row.getBoundingClientRect());
+    const gap = boxes.length > 1 ? Math.max(0, boxes[1].top - boxes[0].bottom) : 8;
+    const stride = boxes[fromIndex].height + gap;
+    const mids = boxes.map((box) => box.top + box.height / 2);
+    const startY = event.clientY;
+    let moved = false;
+    let overIndex = fromIndex;
+
+    const nearest = (pointerY: number) => {
+      let index = fromIndex;
+      let best = Number.POSITIVE_INFINITY;
+      mids.forEach((mid, i) => {
+        const distance = Math.abs(pointerY - mid);
+        if (distance < best) {
+          best = distance;
+          index = i;
+        }
+      });
+      return index;
+    };
+
+    const move = (ev: PointerEvent) => {
+      const dy = ev.clientY - startY;
+      if (!moved && Math.abs(dy) < 4) return;
+      if (!moved) document.documentElement.classList.add("stop-dragging");
+      moved = true;
+      overIndex = nearest(ev.clientY);
+      setDrag({ id: placeId, dy, fromIndex, overIndex, stride });
+    };
+    const finish = () => {
+      window.removeEventListener("pointermove", move);
+      window.removeEventListener("pointerup", finish);
+      window.removeEventListener("pointercancel", finish);
+      document.documentElement.classList.remove("stop-dragging");
+      const targetId = rows[overIndex]?.dataset.stopId ?? placeId;
+      if (moved) {
+        rows[0]?.parentElement?.classList.add("is-settling");
+        const held = rows[fromIndex].getBoundingClientRect();
+        settleRef.current = { id: placeId, top: held.top, left: held.left };
+        suppressOpen.current = true;
+        if (targetId !== placeId) void reorderStops(placeId, targetId);
+      }
+      setDrag(null);
+    };
+    window.addEventListener("pointermove", move);
+    window.addEventListener("pointerup", finish);
+    window.addEventListener("pointercancel", finish);
+  }
+
+  useLayoutEffect(() => {
+    const settle = settleRef.current;
+    if (!settle) return;
+    settleRef.current = null;
+    const node = document.querySelector<HTMLElement>(`[data-stop-id="${settle.id}"]`);
+    if (!node) return;
+    const box = node.getBoundingClientRect();
+    const dy = settle.top - box.top;
+    const dx = settle.left - box.left;
+    if (Math.abs(dy) < 1 && Math.abs(dx) < 1) return;
+    node.style.transition = "none";
+    node.style.transform = `translate(${dx}px, ${dy}px)`;
+    requestAnimationFrame(() => {
+      node.style.transition = "transform 180ms cubic-bezier(0.2, 0.8, 0.2, 1)";
+      node.style.transform = "";
+      const clear = () => {
+        node.style.transition = "";
+        node.removeEventListener("transitionend", clear);
+      };
+      node.addEventListener("transitionend", clear);
+    });
+    document.querySelector(".stop-list")?.classList.remove("is-settling");
+  }, [detail, drag]);
+
+  async function reorderStops(fromId: string, toId: string) {
+    if (!detail || fromId === toId) return;
+    const indexed = detail.stops.map((stop) => ({ ...stop, id: stop.place_id }));
+    const next = moveItem(indexed, fromId, toId);
+    if (next === indexed) return;
+    const previous = detail;
+    setDetail({ ...detail, stops: next.map(({ id: _id, ...stop }) => stop) });
     try {
       applyDetail(await reorderTripStops(tripId, next.map((stop) => stop.place_id)));
     } catch (err) {
+      setDetail(previous);
       onError(String(err));
     }
   }
@@ -323,33 +416,57 @@ export default function TripView({
           <p className="links-empty">Add a place you want to visit. It can be new, or one you already saved.</p>
         ) : (
           <ol className="stop-list">
-            {detail.stops.map((stop, index) => (
-              <li key={stop.place_id}>
+            {detail.stops.map((stop, index) => {
+              const held = drag?.id === stop.place_id;
+              let shift = 0;
+              if (drag && !held) {
+                if (drag.fromIndex < drag.overIndex && index > drag.fromIndex && index <= drag.overIndex) {
+                  shift = -drag.stride;
+                } else if (drag.fromIndex > drag.overIndex && index < drag.fromIndex && index >= drag.overIndex) {
+                  shift = drag.stride;
+                }
+              }
+              return (
+              <li
+                key={stop.place_id}
+                data-stop-id={stop.place_id}
+                className={held ? "is-dragging" : undefined}
+                style={
+                  held
+                    ? { transform: `translateY(${drag.dy}px)` }
+                    : shift !== 0
+                      ? { transform: `translateY(${shift}px)` }
+                      : undefined
+                }
+                onPointerDown={(event) => startReorder(event, stop.place_id)}
+              >
+                <div
+                  className="stop-handle"
+                  role="button"
+                  tabIndex={0}
+                  aria-label={`Drag ${stop.place_name}`}
+                  onKeyDown={(event) => {
+                    if (event.key !== "ArrowUp" && event.key !== "ArrowDown") return;
+                    event.preventDefault();
+                    const neighbor = detail.stops[index + (event.key === "ArrowUp" ? -1 : 1)];
+                    if (neighbor) void reorderStops(stop.place_id, neighbor.place_id);
+                  }}
+                />
                 <button
                   type="button"
                   className="stop-name"
-                  onClick={() => onOpenPlace(stop.place_id, stop.country_id)}
+                  onClick={() => {
+                    if (suppressOpen.current) {
+                      suppressOpen.current = false;
+                      return;
+                    }
+                    onOpenPlace(stop.place_id, stop.country_id);
+                  }}
                 >
                   <span>{stop.place_name}</span>
                   <span className="domain">{stop.country_name}</span>
                 </button>
                 <div className="page-actions">
-                  <button
-                    type="button"
-                    className="text"
-                    disabled={index === 0}
-                    onClick={() => void moveStop(index, -1)}
-                  >
-                    Up
-                  </button>
-                  <button
-                    type="button"
-                    className="text"
-                    disabled={index === detail.stops.length - 1}
-                    onClick={() => void moveStop(index, 1)}
-                  >
-                    Down
-                  </button>
                   <button
                     type="button"
                     className="text"
@@ -366,7 +483,8 @@ export default function TripView({
                   </button>
                 </div>
               </li>
-            ))}
+              );
+            })}
           </ol>
         )}
       </section>

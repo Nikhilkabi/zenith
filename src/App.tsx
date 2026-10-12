@@ -325,6 +325,7 @@ export default function App() {
                 setView({ kind: "home" });
               }}
               onCoverChanged={() => void reload()}
+              onLibraryChanged={() => void reload()}
               onError={onError}
             />
           )}

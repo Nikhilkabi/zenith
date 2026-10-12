@@ -70,6 +70,7 @@ pub struct Place {
     pub image_count: i32,
     pub when_text: Option<String>,
     pub year: Option<i32>,
+    pub month: Option<i32>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

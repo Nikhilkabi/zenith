@@ -26,7 +26,7 @@ export default function MustDo({ placeId, onError }: Props) {
         <p className="links-empty">A short list for this place. Sunrise viewpoint, the trail, the village.</p>
       ) : (
         <ul className="task-list">
-          {tasks.map((task) => (
+          {[...tasks.filter((task) => !task.done), ...tasks.filter((task) => task.done)].map((task) => (
             <li key={task.id}>
               <label>
                 <input

@@ -66,6 +66,7 @@ export interface Place {
   image_count: number;
   when_text: string | null;
   year: number | null;
+  month: number | null;
 }
 
 export interface Trip {

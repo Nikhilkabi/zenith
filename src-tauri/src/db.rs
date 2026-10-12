@@ -41,6 +41,7 @@ const MIGRATIONS: &[(i32, &str)] = &[
     (6, include_str!("migrations/006_done_year.sql")),
     (7, include_str!("migrations/007_clear_reverted_places.sql")),
     (8, include_str!("migrations/008_plan_date.sql")),
+    (9, include_str!("migrations/009_place_month.sql")),
 ];
 
 pub fn init_library() -> Result<AppState, DbError> {
@@ -299,12 +300,13 @@ fn map_place(row: &rusqlite::Row<'_>) -> rusqlite::Result<Place> {
         image_count: row.get(8)?,
         when_text: row.get(11)?,
         year: row.get(12)?,
+        month: row.get(13)?,
     })
 }
 
 const PLACE_SELECT: &str = "SELECT id, country_id, name, cover_relpath, notes, status, sort, created_at,
         (SELECT COUNT(*) FROM images i WHERE i.place_id = places.id AND i.deleted_at IS NULL) AS image_count,
-        cover_x, cover_y, when_text, year
+        cover_x, cover_y, when_text, year, month
  FROM places";
 
 pub fn list_places(conn: &Connection, country_id: &str) -> Result<Vec<Place>, DbError> {
@@ -388,6 +390,7 @@ pub fn create_place(
         image_count: 0,
         when_text: None,
         year: None,
+        month: None,
     })
 }
 
@@ -398,6 +401,8 @@ pub fn update_place(
     notes: Option<&str>,
     status: Option<&str>,
     when_text: Option<&str>,
+    month: Option<i32>,
+    plan_year: Option<i32>,
 ) -> Result<Place, DbError> {
     let mut place = get_place(conn, place_id)?;
 
@@ -418,27 +423,56 @@ pub fn update_place(
         };
     }
 
-    if let Some(status) = status {
-        place.status = match status {
-            "been" => "been".to_string(),
-            _ => "dream".to_string(),
-        };
-    }
-
     if let Some(when_text) = when_text {
         let trimmed = when_text.trim();
         if trimmed.is_empty() {
             place.when_text = None;
             place.year = None;
+            place.month = None;
         } else {
             place.year = year_in(trimmed);
             place.when_text = Some(trimmed.to_string());
         }
     }
 
+    if let (Some(month), Some(year)) = (month, plan_year) {
+        let chosen = chosen_date(month, year)?;
+        place.month = Some(chosen.month);
+        place.year = Some(chosen.year);
+        place.when_text = Some(chosen.label);
+        place.status = if chosen.past {
+            "been".to_string()
+        } else {
+            "dream".to_string()
+        };
+    }
+
+    if let Some(status) = status {
+        if status == "been" {
+            let today = current_date();
+            place.month = Some(today.month);
+            place.year = Some(today.year);
+            place.when_text = Some(today.label);
+            place.status = "been".to_string();
+        } else {
+            place.month = None;
+            place.year = None;
+            place.when_text = None;
+            place.status = "dream".to_string();
+        }
+    }
+
     conn.execute(
-        "UPDATE places SET name = ?1, notes = ?2, status = ?3, when_text = ?4, year = ?5 WHERE id = ?6",
-        params![place.name, place.notes, place.status, place.when_text, place.year, place_id],
+        "UPDATE places SET name = ?1, notes = ?2, status = ?3, when_text = ?4, year = ?5, month = ?6 WHERE id = ?7",
+        params![
+            place.name,
+            place.notes,
+            place.status,
+            place.when_text,
+            place.year,
+            place.month,
+            place_id
+        ],
     )?;
 
     get_place(conn, place_id)
@@ -1754,8 +1788,32 @@ pub fn search(conn: &Connection, query: &str) -> Result<Vec<SearchHit>, DbError>
     }
 
     let mut places = conn.prepare(
-        "SELECT id, name, notes, country_id FROM places
-         WHERE deleted_at IS NULL AND (name LIKE ?1 ESCAPE '\\' OR IFNULL(notes, '') LIKE ?1 ESCAPE '\\') LIMIT 20",
+        "SELECT p.id, p.name,
+                CASE
+                  WHEN IFNULL(p.notes, '') LIKE ?1 ESCAPE '\\' THEN p.notes
+                  WHEN EXISTS (
+                    SELECT 1 FROM place_tasks t
+                    WHERE t.place_id = p.id AND t.body LIKE ?1 ESCAPE '\\'
+                  ) THEN (
+                    SELECT t.body FROM place_tasks t
+                    WHERE t.place_id = p.id AND t.body LIKE ?1 ESCAPE '\\'
+                    LIMIT 1
+                  )
+                  ELSE p.when_text
+                END,
+                p.country_id
+         FROM places p
+         WHERE p.deleted_at IS NULL
+           AND (
+             p.name LIKE ?1 ESCAPE '\\'
+             OR IFNULL(p.notes, '') LIKE ?1 ESCAPE '\\'
+             OR IFNULL(p.when_text, '') LIKE ?1 ESCAPE '\\'
+             OR EXISTS (
+               SELECT 1 FROM place_tasks t
+               WHERE t.place_id = p.id AND t.body LIKE ?1 ESCAPE '\\'
+             )
+           )
+         LIMIT 20",
     )?;
     for row in places.query_map(params![like], |row| {
         Ok(SearchHit {

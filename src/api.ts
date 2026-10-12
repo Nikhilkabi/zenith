@@ -68,7 +68,14 @@ export function createPlace(
 
 export function updatePlace(
   placeId: string,
-  patch: { name?: string; notes?: string; status?: "dream" | "been"; whenText?: string },
+  patch: {
+    name?: string;
+    notes?: string;
+    status?: "dream" | "been";
+    whenText?: string;
+    month?: number;
+    planYear?: number;
+  },
 ): Promise<Place> {
   return invoke("update_place", {
     placeId,
@@ -76,6 +83,8 @@ export function updatePlace(
     notes: patch.notes ?? null,
     status: patch.status ?? null,
     whenText: patch.whenText ?? null,
+    month: patch.month ?? null,
+    planYear: patch.planYear ?? null,
   });
 }
 

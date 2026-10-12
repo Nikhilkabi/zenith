@@ -153,6 +153,8 @@ pub fn update_place(
     notes: Option<String>,
     status: Option<String>,
     when_text: Option<String>,
+    month: Option<i32>,
+    plan_year: Option<i32>,
 ) -> Result<Place, String> {
     parse_id(&place_id, "place")?;
     db::update_place(
@@ -162,6 +164,8 @@ pub fn update_place(
         notes.as_deref(),
         status.as_deref(),
         when_text.as_deref(),
+        month,
+        plan_year,
     )
     .map_err(map_err)
 }
